@@ -98,12 +98,12 @@
 | 4개월차 | 다운스트림 QA 평가 + baseline 비교, 도메인 적응은 이 시점부터 병렬 | 서브4(4.1~4.5) + 서브5(5.0~5.4) 병렬 |
 | 5~6개월차 | 결과 분석, ablation 정리, 논문 작성/투고 (arXiv 프리프린트 우선) | — |
 
-Phase 0.5(baseline 재현)의 실제 소요가 예상보다 길어질 경우 이 일정에서 가장 먼저 완충 여유를 줄 항목이므로, 1개월차 종료 시점에 baseline 재현 상태를 반드시 점검할 것.
+Phase 0.5(baseline 재현)의 실제 소요가 예상보다 길어질 경우 이 일정에서 가장 먼저 완충 여유를 줄 항목이므로, 1개월차 종료 시점에 baseline 재현 상태를 반드시 점검할 것. 특히 Phase 0.5-a0(처리량 사전 체크, `graphrag_04_evaluation.md` 참고)에서 MS GraphRAG/LightRAG의 전체 코퍼스 인덱싱 외삽 시간이 baseline 1종당 약 2주를 넘는 것으로 확인되면, QA 비교 코퍼스를 UltraDomain 전체(428개)가 아니라 벤치마크 질문이 실제로 걸쳐 있는 서브셋으로 축소하는 절충안을 조기에 결정할 것.
 
 ### 코드 마일스톤 체크리스트 (일정과 동기화)
 1. Phase 0.0: 로컬 교사 모델 vLLM 서빙 기동 확인 (샘플 1건 응답)
 2. `graphrag_01_data_pipeline.md` Phase 1.1 Done when 충족 (파일럿 파싱 성공률 ≥95%)
-3. `graphrag_04_evaluation.md` Phase 0.5 Done when 충족 (baseline 5종 중 최소 2종 로컬 LLM 연동 확인) — **가장 리스크 큰 항목이므로 조기 확인**
+3. `graphrag_04_evaluation.md` Phase 0.5-a0(처리량 사전 체크, 문서 10~20개 샘플) 완료 후 Phase 0.5 Done when 충족 (baseline 5종 중 최소 2종 로컬 LLM 연동 확인) — **가장 리스크 큰 항목이므로 조기 확인**, 처리량 실측치에 따라 코퍼스 축소 여부도 이 시점에 결정
 4. `graphrag_02_distillation.md` Phase 2.2 Done when 충족 (SFT 1 epoch 정상 종료)
 5. `graphrag_03_graph_construction.md` Phase 3.35 Done when 충족 (쿼리 1건 end-to-end 테스트 통과)
 6. `graphrag_04_evaluation.md` benchmark 러너로 전체 파이프라인 자동 비교 실행 (교사-학생 일치율 + 골드셋 실제 정확도 + baseline 원 논문 앵커 병기 포함)

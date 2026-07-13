@@ -1,0 +1,433 @@
+<title>LLM-Free GraphRAG 아키텍처</title>
+<style>
+  :root{
+    --bg:#10141a;
+    --surface:#171d26;
+    --surface-2:#1f2731;
+    --ink:#e7e9ee;
+    --muted:#8792a3;
+    --line:#2a323d;
+    --line-soft:#232b35;
+    --graph:#4db8ad;
+    --graph-soft:rgba(77,184,173,.14);
+    --teacher:#d99a5b;
+    --teacher-soft:rgba(217,154,91,.14);
+    --risk:#c97b6a;
+    --risk-soft:rgba(201,123,106,.14);
+    --shadow: 0 1px 0 rgba(0,0,0,.4);
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#eef1f1;
+      --surface:#ffffff;
+      --surface-2:#e6eaea;
+      --ink:#171d22;
+      --muted:#5c6670;
+      --line:#d6dcdc;
+      --line-soft:#e1e6e6;
+      --graph:#1f8478;
+      --graph-soft:rgba(31,132,120,.10);
+      --teacher:#a8672c;
+      --teacher-soft:rgba(168,103,44,.10);
+      --risk:#a14e3d;
+      --risk-soft:rgba(161,78,61,.10);
+      --shadow: 0 1px 0 rgba(0,0,0,.06);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#10141a; --surface:#171d26; --surface-2:#1f2731; --ink:#e7e9ee; --muted:#8792a3;
+    --line:#2a323d; --line-soft:#232b35; --graph:#4db8ad; --graph-soft:rgba(77,184,173,.14);
+    --teacher:#d99a5b; --teacher-soft:rgba(217,154,91,.14); --risk:#c97b6a; --risk-soft:rgba(201,123,106,.14);
+  }
+  :root[data-theme="light"]{
+    --bg:#eef1f1; --surface:#ffffff; --surface-2:#e6eaea; --ink:#171d22; --muted:#5c6670;
+    --line:#d6dcdc; --line-soft:#e1e6e6; --graph:#1f8478; --graph-soft:rgba(31,132,120,.10);
+    --teacher:#a8672c; --teacher-soft:rgba(168,103,44,.10); --risk:#a14e3d; --risk-soft:rgba(161,78,61,.10);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:Pretendard,"Pretendard Variable","Apple SD Gothic Neo","Noto Sans KR",-apple-system,BlinkMacSystemFont,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{
+    font-family:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Consolas,monospace;
+    font-variant-numeric:tabular-nums;
+  }
+  a{color:inherit;}
+  :focus-visible{outline:2px solid var(--graph); outline-offset:2px;}
+
+  .page{ max-width:1180px; margin:0 auto; padding:56px 28px 80px; }
+
+  /* ---------- Header ---------- */
+  header{ margin-bottom:44px; }
+  .eyebrow{
+    font-family:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Consolas,monospace;
+    font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--graph);
+    display:flex; align-items:center; gap:10px; margin-bottom:14px;
+  }
+  .eyebrow::before{ content:""; width:18px; height:1px; background:var(--graph); display:inline-block; }
+  h1{
+    font-size:clamp(26px,4vw,38px); line-height:1.18; font-weight:800; margin:0 0 14px;
+    letter-spacing:-.01em; text-wrap:balance; max-width:22ch;
+  }
+  .definition{
+    font-size:15.5px; line-height:1.75; color:var(--muted); max-width:66ch; margin:0 0 28px;
+  }
+  .definition b{ color:var(--ink); font-weight:600; }
+
+  .chips{ display:flex; flex-wrap:wrap; gap:10px; }
+  .chip{
+    display:flex; align-items:center; gap:9px;
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:8px; padding:9px 14px; font-size:13px; box-shadow:var(--shadow);
+  }
+  .chip .dot{ width:7px; height:7px; border-radius:50%; flex:none; }
+  .chip .k{ color:var(--muted); }
+  .chip .v{ font-family:ui-monospace,monospace; font-weight:600; }
+  .dot.g{ background:var(--graph); }
+  .dot.t{ background:var(--teacher); }
+  .dot.r{ background:var(--risk); }
+
+  /* ---------- Section shell ---------- */
+  section.block{ margin-top:56px; }
+  .block h2{
+    font-size:14px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted);
+    font-weight:700; margin:0 0 6px; display:flex; align-items:center; gap:10px;
+  }
+  .block h2 .n{ color:var(--graph); font-family:ui-monospace,monospace; }
+  .block .sub{ font-size:13.5px; color:var(--muted); margin:0 0 22px; max-width:64ch; line-height:1.6; }
+
+  .scroller{
+    overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch;
+    border-top:1px solid var(--line-soft); border-bottom:1px solid var(--line-soft);
+    padding:22px 4px 26px;
+  }
+  .scroller::-webkit-scrollbar{ height:8px; }
+  .scroller::-webkit-scrollbar-thumb{ background:var(--line); border-radius:4px; }
+
+  /* ---------- Pipeline flow ---------- */
+  .flow{ display:flex; align-items:flex-start; gap:0; min-width:max-content; padding:0 8px; position:relative; }
+  .stage{
+    width:172px; flex:none; background:var(--surface); border:1px solid var(--line);
+    border-radius:10px; padding:14px 14px 15px; position:relative;
+  }
+  .stage .idx{ font-family:ui-monospace,monospace; font-size:11px; color:var(--muted); margin-bottom:8px; }
+  .stage .t{ font-size:14px; font-weight:700; line-height:1.35; margin-bottom:6px; }
+  .stage .d{ font-size:12px; color:var(--muted); line-height:1.55; }
+  .stage.hero{
+    background:linear-gradient(180deg, var(--graph-soft), transparent 70%), var(--surface);
+    border-color:var(--graph);
+  }
+  .stage.hero .big{
+    font-family:ui-monospace,monospace; font-size:34px; font-weight:800; color:var(--graph);
+    line-height:1; margin:2px 0 4px;
+  }
+  .arrow{ width:34px; flex:none; align-self:center; height:1px; background:var(--line); position:relative; top:0; margin-top:52px; }
+  .arrow::after{
+    content:""; position:absolute; right:0; top:50%; transform:translateY(-50%);
+    border-left:6px solid var(--line); border-top:4px solid transparent; border-bottom:4px solid transparent;
+  }
+
+  .branch-col{ display:flex; flex-direction:column; align-items:center; flex:none; }
+  .branch-link{ width:1px; height:22px; background:var(--line-soft); }
+  .branch-link.dashed{ background:repeating-linear-gradient(180deg, var(--muted) 0 4px, transparent 4px 8px); width:1px; opacity:.6; }
+  .satellite{
+    width:172px; background:var(--surface-2); border:1px dashed var(--line);
+    border-radius:9px; padding:11px 13px; font-size:11.5px; color:var(--muted); line-height:1.55;
+  }
+  .satellite .t{ font-size:12.5px; font-weight:700; color:var(--ink); margin-bottom:4px; }
+  .satellite .t.teacher{ color:var(--teacher); }
+
+  .col-stack{ display:flex; flex-direction:column; gap:14px; flex:none; }
+  .row-mid{ display:flex; align-items:flex-start; }
+  .converge{ display:flex; flex-direction:column; gap:10px; justify-content:center; margin-top:52px; flex:none; }
+  .converge-line{ width:34px; height:1px; background:var(--line-soft); align-self:center; }
+
+  /* ---------- Legend ---------- */
+  .legend{ display:flex; flex-wrap:wrap; gap:18px; margin-top:16px; font-size:12px; color:var(--muted); }
+  .legend .item{ display:flex; align-items:center; gap:7px; }
+  .legend .swatch{ width:20px; height:0; border-top:2px solid var(--line); }
+  .legend .swatch.dashed{ border-top:2px dashed var(--muted); }
+  .legend .swatch.solid-accent{ border-top:2px solid var(--graph); }
+
+  /* ---------- Swimlane ---------- */
+  .swim-wrap{ position:relative; }
+  .swim{ position:relative; }
+  .lane-row{ display:flex; align-items:flex-start; height:52px; margin-bottom:14px; }
+  .lane-row:last-child{ margin-bottom:0; }
+  .lane-label{
+    position:sticky; left:0; z-index:2; width:140px; flex:none; height:52px;
+    display:flex; flex-direction:column; justify-content:center; gap:2px;
+    background:var(--bg); padding-right:14px; border-right:1px solid var(--line-soft);
+  }
+  .lane-label .name{ font-size:12.5px; font-weight:700; display:flex; align-items:center; gap:7px; }
+  .lane-label .name .dot{ width:7px; height:7px; border-radius:50%; flex:none; }
+  .lane-label .role{ font-size:10.5px; color:var(--muted); padding-left:14px; }
+  .lane-track{ position:relative; height:52px; }
+  .phase-chip{
+    position:absolute; top:0; width:84px; height:52px; background:var(--surface-2);
+    border:1px solid var(--line); border-radius:7px; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:1px;
+  }
+  .phase-chip .code{ font-family:ui-monospace,monospace; font-size:12.5px; font-weight:700; }
+  .phase-chip .note{ font-size:9px; color:var(--muted); }
+  .phase-chip.parallel{ box-shadow: inset 3px 0 0 var(--teacher); }
+  .phase-chip.emphasis{ border-color:var(--graph); box-shadow: inset 0 0 0 1px var(--graph); }
+  .lane-connector{ position:absolute; height:1px; background:var(--line-soft); top:26px; }
+  .svg-overlay{ position:absolute; top:0; left:140px; pointer-events:none; }
+
+  footer{ margin-top:64px; border-top:1px solid var(--line-soft); padding-top:26px; }
+  .foot-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:22px; }
+  .foot-card .t{ font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; font-weight:700; }
+  .foot-card .v{ font-size:13.5px; line-height:1.7; color:var(--ink); }
+  .foot-card .v .mono{ color:var(--graph); }
+  .src{ margin-top:30px; font-size:11.5px; color:var(--muted); }
+
+  @media (max-width:640px){
+    .page{ padding:40px 16px 60px; }
+  }
+</style>
+
+<div class="page">
+
+  <header>
+    <div class="eyebrow">System Architecture · v2026-07</div>
+    <h1>LLM-Free GraphRAG 증류 파이프라인</h1>
+    <p class="definition">
+      교사 LLM으로 합성 (문서 → 엔티티/관계) 데이터를 생성하고, 이를 경량 NLP 모델에 <b>SFT로 증류</b>하여,
+      <b>인덱싱 시점에 LLM 호출 없이</b> GraphRAG 그래프를 구축하는 프레임워크.
+    </p>
+    <div class="chips">
+      <div class="chip"><span class="dot t"></span><span class="k">GPU</span><span class="v">RTX 3090 · 24GB · 무제한</span></div>
+      <div class="chip"><span class="dot t"></span><span class="k">API 예산</span><span class="v">₩10,000 · 검증 전용</span></div>
+      <div class="chip"><span class="dot g"></span><span class="k">일정</span><span class="v">4–6개월</span></div>
+      <div class="chip"><span class="dot r"></span><span class="k">최대 리스크</span><span class="v">Phase 0.5 baseline 재현</span></div>
+    </div>
+  </header>
+
+  <!-- ============ PIPELINE ============ -->
+  <section class="block">
+    <h2><span class="n">01</span> 엔드투엔드 데이터 흐름</h2>
+    <p class="sub">원문 코퍼스에서 다운스트림 QA 평가까지 — 강조된 단계가 이 프레임워크의 핵심 주장(인덱싱 LLM 호출 0회)이다.</p>
+
+    <div class="scroller">
+      <div class="flow">
+
+        <div class="stage">
+          <div class="idx">INPUT</div>
+          <div class="t">원문 코퍼스</div>
+          <div class="d">UltraDomain 외 7종 데이터셋 (428개 교재, 18개 도메인)</div>
+        </div>
+        <div class="arrow"></div>
+
+        <div class="col-stack">
+          <div class="row-mid">
+            <div class="stage">
+              <div class="idx">TEACHER</div>
+              <div class="t">로컬 교사 LLM</div>
+              <div class="d">Qwen2.5-32B-AWQ · vLLM 서빙 · 4bit 양자화</div>
+            </div>
+            <div class="arrow"></div>
+            <div class="stage">
+              <div class="idx">GEN</div>
+              <div class="t">합성 데이터 생성</div>
+              <div class="d">문서 → triple · 500~1,000청크 · self-consistency confidence</div>
+            </div>
+          </div>
+          <div class="branch-col" style="align-items:flex-start; margin-left:206px;">
+            <div class="branch-link dashed"></div>
+            <div class="satellite">
+              <div class="t teacher">GPT-4o 검증 (₩1,600)</div>
+              고정 서브셋 150~200청크 sanity-check + 골드셋 2차 라벨러(κ) — 인덱싱과 무관, 오프라인 QA 전용
+            </div>
+          </div>
+        </div>
+
+        <div class="arrow"></div>
+        <div class="stage">
+          <div class="idx">DISTILL</div>
+          <div class="t">경량 모델 SFT</div>
+          <div class="d">QLoRA/LoRA · 보조데이터 비율 실험(0/10/30/50%)</div>
+        </div>
+        <div class="arrow"></div>
+
+        <div class="stage hero">
+          <div class="idx">INDEX</div>
+          <div class="t">그래프 구축</div>
+          <div class="big">0</div>
+          <div class="d">인덱싱 시 LLM 호출 0회 · 엔티티 정규화 · Leiden · TextRank 요약</div>
+        </div>
+        <div class="arrow"></div>
+
+        <div class="stage">
+          <div class="idx">RETRIEVE</div>
+          <div class="t">검색 인터페이스</div>
+          <div class="d">쿼리 → 1~2hop 서브그래프 탐색 · 랭킹</div>
+        </div>
+        <div class="arrow"></div>
+
+        <div class="col-stack">
+          <div class="branch-col" style="align-items:flex-start; margin-left:0;">
+            <div class="satellite" style="margin-bottom:0;">
+              <div class="t">Baseline 5종</div>
+              MS GraphRAG · LightRAG · LiteSemRAG · dep-parsing · NoLLMRAG (로컬 LLM 인덱싱으로 통일)
+            </div>
+            <div class="branch-link dashed"></div>
+          </div>
+          <div class="stage" style="margin-top:0;">
+            <div class="idx">OUTPUT</div>
+            <div class="t">다운스트림 QA 평가</div>
+            <div class="d">비용(GPU-시간) · 정확도 · 환각률 · 도메인 적응 격차</div>
+          </div>
+          <div class="branch-col" style="align-items:flex-start; margin-left:0;">
+            <div class="branch-link dashed"></div>
+            <div class="satellite teacher" style="margin-top:0;">
+              <div class="t teacher">원논문 앵커</div>
+              GraphRAG/LightRAG의 GPT-4 보고 수치 — 삼각비교용 참고열
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="item"><span class="swatch"></span> 순차 데이터 흐름</div>
+      <div class="item"><span class="swatch dashed"></span> 검증/비교용 보조 입력 (인덱싱 경로 아님)</div>
+      <div class="item"><span class="swatch solid-accent"></span> 핵심 주장 지점</div>
+    </div>
+  </section>
+
+  <!-- ============ SWIMLANE ============ -->
+  <section class="block">
+    <h2><span class="n">02</span> Phase 의존관계 맵</h2>
+    <p class="sub">6개 레인(공통 인프라 + 서브프로젝트 1~5)의 실행 순서와 교차 의존성. 좌측 막대색은 코어 파이프라인(teal)과 인프라·평가 확장(copper)을 구분한다.</p>
+
+    <div class="scroller">
+      <div class="swim-wrap">
+        <div class="swim" id="swim">
+
+          <div class="lane-row">
+            <div class="lane-label"><div class="name"><span class="dot t"></span>공통 인프라</div><div class="role">Phase 0</div></div>
+            <div class="lane-track">
+              <div class="phase-chip" style="left:0px;"><div class="code">0.0</div><div class="note">교사 서빙</div></div>
+              <div class="phase-chip" style="left:90px; width:172px;"><div class="code">0.5</div><div class="note">baseline 재현 + a0 처리량체크</div></div>
+            </div>
+          </div>
+
+          <div class="lane-row">
+            <div class="lane-label"><div class="name"><span class="dot g"></span>서브1 · 데이터</div><div class="role">1.0 – 1.6</div></div>
+            <div class="lane-track">
+              <div class="phase-chip parallel" style="left:0px;"><div class="code">1.0</div></div>
+              <div class="phase-chip" style="left:90px;"><div class="code">1.1</div></div>
+              <div class="phase-chip" style="left:180px;"><div class="code">1.2</div></div>
+              <div class="phase-chip" style="left:270px;"><div class="code">1.3</div></div>
+              <div class="phase-chip" style="left:360px;"><div class="code">1.4</div></div>
+              <div class="phase-chip" style="left:450px;"><div class="code">1.5</div></div>
+              <div class="phase-chip emphasis" style="left:540px;"><div class="code">1.6</div><div class="note">골드셋+GPT-4o</div></div>
+            </div>
+          </div>
+
+          <div class="lane-row">
+            <div class="lane-label"><div class="name"><span class="dot g"></span>서브2 · 증류</div><div class="role">2.0 – 2.6</div></div>
+            <div class="lane-track">
+              <div class="phase-chip" style="left:630px;"><div class="code">2.0</div></div>
+              <div class="phase-chip" style="left:720px;"><div class="code">2.1</div></div>
+              <div class="phase-chip" style="left:810px;"><div class="code">2.2</div></div>
+              <div class="phase-chip" style="left:900px;"><div class="code">2.3</div></div>
+              <div class="phase-chip" style="left:990px;"><div class="code">2.4</div></div>
+              <div class="phase-chip" style="left:1080px;"><div class="code">2.5</div></div>
+              <div class="phase-chip" style="left:1170px;"><div class="code">2.6</div></div>
+            </div>
+          </div>
+
+          <div class="lane-row">
+            <div class="lane-label"><div class="name"><span class="dot g"></span>서브3 · 그래프</div><div class="role">3.0 – 3.7</div></div>
+            <div class="lane-track">
+              <div class="phase-chip" style="left:1260px;"><div class="code">3.0</div></div>
+              <div class="phase-chip" style="left:1350px;"><div class="code">3.1</div></div>
+              <div class="phase-chip" style="left:1440px;"><div class="code">3.2</div></div>
+              <div class="phase-chip" style="left:1530px;"><div class="code">3.3</div></div>
+              <div class="phase-chip" style="left:1620px;"><div class="code">3.35</div></div>
+              <div class="phase-chip" style="left:1710px;"><div class="code">3.4</div></div>
+              <div class="phase-chip" style="left:1800px;"><div class="code">3.5</div></div>
+              <div class="phase-chip" style="left:1890px;"><div class="code">3.6</div></div>
+              <div class="phase-chip emphasis" style="left:1980px;"><div class="code">3.7</div><div class="note">일치율/실정확도</div></div>
+            </div>
+          </div>
+
+          <div class="lane-row">
+            <div class="lane-label"><div class="name"><span class="dot t"></span>서브4 · 평가</div><div class="role">4.1 – 4.5</div></div>
+            <div class="lane-track">
+              <div class="phase-chip" style="left:2070px;"><div class="code">4.1</div></div>
+              <div class="phase-chip" style="left:2160px;"><div class="code">4.2</div></div>
+              <div class="phase-chip" style="left:2250px;"><div class="code">4.3</div></div>
+              <div class="phase-chip" style="left:2340px;"><div class="code">4.4</div></div>
+              <div class="phase-chip" style="left:2430px;"><div class="code">4.5</div></div>
+            </div>
+          </div>
+
+          <div class="lane-row">
+            <div class="lane-label"><div class="name"><span class="dot t"></span>서브5 · 도메인적응</div><div class="role">5.0 – 5.4</div></div>
+            <div class="lane-track">
+              <div class="phase-chip parallel" style="left:1260px;"><div class="code">5.0</div></div>
+              <div class="phase-chip" style="left:1350px;"><div class="code">5.1</div></div>
+              <div class="phase-chip" style="left:1440px;"><div class="code">5.2</div></div>
+              <div class="phase-chip" style="left:1530px;"><div class="code">5.3</div></div>
+              <div class="phase-chip" style="left:2160px;"><div class="code">5.4</div><div class="note">4.2 하네스 필요</div></div>
+            </div>
+          </div>
+
+          <svg class="svg-overlay" width="2610" height="396" viewBox="0 0 2610 396" aria-hidden="true">
+            <defs>
+              <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L6,3 L0,6 Z" fill="var(--muted)"></path>
+              </marker>
+            </defs>
+            <g fill="none" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="3 3" opacity=".65" marker-end="url(#arrow)">
+              <polyline points="582,118 582,125 672,125 672,132"></polyline>
+              <polyline points="1212,184 1212,191 1302,191 1302,198"></polyline>
+              <polyline points="1212,184 1212,322 1302,322 1302,330"></polyline>
+              <polyline points="2022,250 2022,257 2112,257 2112,264"></polyline>
+              <polyline points="1662,250 1662,257 2112,257 2112,264"></polyline>
+              <polyline points="2202,316 2202,330"></polyline>
+            </g>
+          </svg>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="item"><span class="swatch dashed"></span> 교차 레인 의존성 (선행 산출물 필요)</div>
+      <div class="item"><span style="width:12px;height:12px;border-radius:3px;box-shadow:inset 3px 0 0 var(--teacher);background:var(--surface-2);border:1px solid var(--line);display:inline-block;"></span> 병렬 착수 가능 지점</div>
+      <div class="item"><span style="width:12px;height:12px;border-radius:3px;border:1px solid var(--graph);display:inline-block;"></span> 순환논증 방지 핵심 산출물</div>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer>
+    <div class="foot-grid">
+      <div class="foot-card">
+        <div class="t">API 예산 배분</div>
+        <div class="v">
+          Sanity-check(1.6-e) <span class="mono">₩1,300</span> · 골드셋 2차 라벨러(1.6-f) <span class="mono">₩300</span> · 버퍼 <span class="mono">₩8,000+</span>
+        </div>
+      </div>
+      <div class="foot-card">
+        <div class="t">Phase 0.5 의사결정 규칙</div>
+        <div class="v">baseline 1종당 전체 코퍼스 인덱싱 외삽 시간이 <span class="mono">2주</span> 초과 시 → QA 비교 코퍼스를 벤치마크 서브셋으로 축소</div>
+      </div>
+      <div class="foot-card">
+        <div class="t">핵심 지표 분리</div>
+        <div class="v">교사-학생 <b>일치율</b>(3.7-b)과 골드셋 <b>실제 정확도</b>(3.7-d)를 분리 산출해 순환논증 방지</div>
+      </div>
+    </div>
+    <p class="src">출처: graphrag_00_overview.md · graphrag_01_data_pipeline.md · graphrag_02_distillation.md · graphrag_03_graph_construction.md · graphrag_04_evaluation.md · graphrag_05_domain_adaptation.md</p>
+  </footer>
+
+</div>

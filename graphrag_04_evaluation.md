@@ -31,15 +31,19 @@ GraphRAG-Bench (난이도별 질문), HotpotQA (supporting facts), MultiHop-RAG 
 ---
 
 ## Phase 0.5 — Baseline 5종 재현 착수 (1주차부터 서브1과 완전 병렬)
+- **0.5-a0** (S, 신규 — 처리량 사전 체크, 다른 sub-step보다 먼저 실행) UltraDomain에서 무작위 10~20개 문서로 Microsoft GraphRAG 표준 인덱싱(엔티티 추출+gleaning 반복+계층적 커뮤니티 요약)을 Phase 0.0 로컬 엔드포인트로 실행, 문서당 소요시간·총 LLM 호출 수 측정 → 428개 전체 외삽 시 예상 소요일수 산출. LightRAG도 동일 절차로 별도 측정(커뮤니티 계층 요약이 없어 상대적으로 가벼울 수 있음)
+  - **의사결정 규칙**: 외삽 추정치가 baseline 1종당 **약 2주**를 넘으면, Phase 4.1~4.5의 QA 비교 코퍼스를 UltraDomain 전체 428개가 아니라 GraphRAG-Bench/HotpotQA/MultiHop-RAG 질문이 실제로 걸쳐 있는 서브셋으로 축소한다. `graphrag_03_graph_construction.md` Phase 3.6의 구조 통계 비교(원 논문 보고 수치 대비)는 이 축소와 무관하게 전체 코퍼스 기준으로 유지 — 그쪽은 baseline을 로컬 재현하는 게 아니라 원 논문 발표 수치와 비교하는 것이라 코퍼스 축소의 영향을 받지 않음. 우리 방법(경량 학생 모델)의 Phase 3.1 전체 코퍼스 추출은 이 규칙과 무관하게 그대로 진행(병목이 아님)
+  - Done when: 두 baseline(MS GraphRAG, LightRAG) 각각의 문서당 처리시간 + 전체 외삽 추정치(일 단위) + 코퍼스 축소 여부 결정 확정
+  - **산출물**: baseline 처리량 벤치마크 리포트 + 코퍼스 범위 결정 기록
 - **0.5-a** (L) Microsoft GraphRAG 설치, 인덱싱 LLM 호출 지점을 Phase 0.0의 로컬 vLLM 엔드포인트로 교체 (config의 API base URL 변경)
 - **0.5-b** (M) LightRAG 설치, 동일하게 로컬 엔드포인트 연동
 - **0.5-c** (M) LiteSemRAG 재현 (LLM-free 계열, 임베딩 모델만 필요)
 - **0.5-d** (M) dependency-parsing(arXiv:2507.03226) 재현 — 코드 공개 여부 먼저 확인, 없으면 논문 기술만으로 최소 재현
 - **0.5-e** (M) NoLLMRAG 재현
 - **0.5-f** (S) 공통 QA 인터페이스(질의→검색→응답 함수 시그니처) 정의, 5개 wrapper 모두 이 인터페이스로 감싸기
-- Done when: 5개 baseline 모두 샘플 질의 1건에 정상 응답, 재현 중 발견된 리스크(의존성 충돌 등) 로그로 기록
-- **산출물**: 5개 baseline wrapper (로컬 LLM 연동 포함) + 공통 QA 인터페이스 코드
-- **왜 최우선인가**: 외부 코드 재현은 의존성 충돌, 미문서화된 하이퍼파라미터, 청킹 방식 차이 등으로 가장 예측 불가능한 작업. `graphrag_03_graph_construction.md` 완료를 기다리면 문제 발견이 프로젝트 후반부로 밀려 전체 일정이 위태로워짐
+- Done when: 5개 baseline 모두 샘플 질의 1건에 정상 응답, 재현 중 발견된 리스크(의존성 충돌 등) 로그로 기록, 0.5-a0의 코퍼스 범위 결정이 이후 Phase 4.1 실행 계획에 반영됨
+- **산출물**: 5개 baseline wrapper (로컬 LLM 연동 포함) + 공통 QA 인터페이스 코드 + 처리량 벤치마크 리포트
+- **왜 최우선인가**: 외부 코드 재현은 의존성 충돌, 미문서화된 하이퍼파라미터, 청킹 방식 차이 등으로 가장 예측 불가능한 작업일 뿐 아니라, MS GraphRAG/LightRAG는 원래 청크당 추출+커뮤니티 계층 요약마다 LLM을 호출하는 구조라 단일 3090으로 전체 코퍼스를 인덱싱하면 **순수 GPU-시간 자체가 며칠~몇 주로 불어날 위험**이 있음(0.5-a0에서 조기 실측). `graphrag_03_graph_construction.md` 완료를 기다리면 문제 발견이 프로젝트 후반부로 밀려 전체 일정이 위태로워짐
 
 ## Phase 4.1 — GraphRAG-Bench 난이도별 평가
 - **4.1-a** (S) 4단계 난이도(사실검색/복합추론/맥락요약/창의생성) 질문 분리 스크립트
