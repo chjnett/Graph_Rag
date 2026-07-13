@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /Users/cheonhyeonjun/Downloads/ | grep -i graphrag)",
+      "Read(//Users/cheonhyeonjun/Downloads/**)",
+      "Read(//Users/cheonhyeonjun/**)",
+      "Bash(claude --version)"
+    ]
+  }
+}
