@@ -4,7 +4,9 @@
       "Bash(ls -la /Users/cheonhyeonjun/Downloads/ | grep -i graphrag)",
       "Read(//Users/cheonhyeonjun/Downloads/**)",
       "Read(//Users/cheonhyeonjun/**)",
-      "Bash(claude --version)"
+      "Bash(claude --version)",
+      "Bash(find / -iname \"SKILL.md\" -path \"*academic-paper*\")",
+      "Bash(find / -iname \"MODE_REGISTRY.md\")"
     ]
   }
 }
