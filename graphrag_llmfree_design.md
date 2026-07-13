@@ -80,15 +80,21 @@
 - Microsoft GraphRAG, LightRAG, LiteSemRAG(LLM-free, 임베딩 기반), Dependency-parsing 방식(arXiv:2507.03226), NoLLMRAG
 - **인덱싱 LLM 통일**: Microsoft GraphRAG/LightRAG는 원래 OpenAI API를 호출하지만, 본 프로젝트에서는 API 비용을 낼 수 없으므로 **§5.1과 동일한 로컬 vLLM 서빙 모델**을 OpenAI 호환 엔드포인트로 연결해 인덱싱시킨다. 이렇게 하면 baseline 간 "비용" 비교가 $ API 요금이 아니라 GPU-시간/wall-clock 기준으로 공정하게 통일됨(§6.3 참고)
 - Baseline 재현은 **일정상 최우선 트랙**으로 1주차부터 서브1(합성데이터)과 병렬 착수 (§8, 이유는 phases 문서의 의존성 재검토 참고 — 외부 코드 재현이 가장 시간 예측이 어려운 작업이므로 조기에 리스크를 드러내야 함)
+- **원 논문 수치 앵커링(리뷰 반영)**: baseline을 로컬 LLM으로 재현하면 "GPU-시간 기준 공정 비교"는 되지만, 원래 GraphRAG/LightRAG 논문이 GPT-4 계열로 보고한 정확도 수치와는 직접 비교가 아니게 됨. 따라서 최종 결과 Table에는 (1) 우리 방법, (2) 로컬 LLM 재현 baseline, (3) 원 논문 보고 수치(가능한 범위 내 인용) 세 지점을 나란히 병기해, "로컬 재현이 원 논문 대비 얼마나 괴리되는지"와 "우리 방법이 그 안에서 어디에 위치하는지"를 독자가 함께 판단할 수 있게 한다 (§6.3, Phase 3.6/4.5 참고)
 
 ### 6.3 평가 지표
+> **개정 (리뷰 반영)**: 기존 "그래프 커버리지" 단일 지표는 학생 모델의 학습 신호(교사 출력)와 평가 정답(교사 출력)이 동일해 순환논증 위험이 있었음. 아래에서 "교사-학생 일치율"과 "실제 정확도(인간 검수)"를 분리했고, 고정 평가 서브셋도 도메인당 표본이 지나치게 작았던 문제(50~100청크/18도메인)를 반영해 150~200청크로 확대함. Baseline 비교에는 원 논문 보고 수치를 앵커로 추가.
+
 | 축 | 지표 |
 |---|---|
 | 비용 | 인덱싱 GPU-시간(wall-clock), (참고용으로만) 동일 작업을 유료 API로 했을 때의 추정 $ 비용 |
-| 품질 | 그래프 커버리지 — **고정 평가 서브셋**(도메인별 균등 샘플 50~100청크)에 대해 로컬 교사 모델이 만든 참조 그래프 대비 학생 모델 그래프의 엔티티/관계 recall (연산량 문제로 전체 코퍼스가 아닌 서브셋 기준) |
-| 다운스트림 | Multi-hop QA 정확도, 인용 근거 일치율 |
+| 품질 (교사-학생 일치) | 교사-학생 그래프 일치율(Teacher-Student Agreement) — **고정 평가 서브셋**(도메인별 균등 샘플 150~200청크, 도메인당 약 8~11청크)에 대해 로컬 교사 모델이 만든 참조 그래프 대비 학생 모델 그래프의 엔티티/관계 recall. **주의: 이 수치는 "학생이 교사를 얼마나 잘 모방했는가"를 재는 지표이며, 그 자체로 "그래프가 실제로 정확한가"의 증명은 아님** (교사가 체계적으로 틀리면 학생이 그 오류까지 복제해도 이 수치는 높게 나옴) |
+| 품질 (실제 정확도) | **인간 검수 골드셋 대비 정확도** — 고정 평가 서브셋 중 30~50 triple을 저자가 직접 원문 `source_span` 대조로 수기 라벨링한 gold subset에 대해 학생 모델 precision/recall 계산. 위 "교사-학생 일치율"과 이 수치의 괴리 정도가 교사 모델 편향의 실질적 증거가 됨 (단일 annotator 한계는 §7 명시) |
+| 다운스트림 | Multi-hop QA 정확도, 인용 근거 일치율. **원 논문(Microsoft GraphRAG/LightRAG 등)이 GPT-4 계열로 보고한 공개 수치를 참고 앵커로 최종 Table에 병기** — 우리는 baseline도 로컬 LLM으로 재현하므로(§6.2), 원 논문 수치라는 세 번째 기준점 없이는 "LLM 기반과 동등한 품질"이라는 주장이 "동일한 약한 교사를 쓴 두 방법 간 비교"로 축소될 위험이 있음 |
 | 안전성 | 환각률 — **추출된 triple 중 원문 `source_span`에서 실제로 지지되지 않는 비율** (그래프 존재 여부가 아니라 원문 대조로 정의) |
 | 적응력 | 범용 vs 도메인 적응 모델의 triple 성능 격차 **+ 다운스트림 QA 정확도 격차** (서브프로젝트 5.4에서 QA 하네스 재사용) |
+
+> **도메인별 세부 분석 관련 유의**: 18개 도메인에 걸친 도메인별 recall/성능 분포(예: Phase 3.7-c)는 도메인당 표본이 여전히 10개 내외로 작아 확증적 결론이 아니라 **탐색적(exploratory) 해석**으로 한정한다. 통계적으로 유의한 도메인 간 차이를 주장하려면 표본을 추가 확대해야 함을 Limitations에 명시.
 
 ### 6.4 Ablation (GPU-시간 기준으로 스코프, API 비용 없음)
 - 합성 데이터 양에 따른 성능 곡선 (100 / 500 / 1,000 pairs — 로컬 GPU 생성 속도 고려해 5K는 시간 여유 시 선택적 확장)
@@ -100,6 +106,9 @@
 - 합성 데이터의 교사 모델 편향이 학생 모델에 전이될 위험
 - **로컬 오픈소스 교사(32B급)는 GPT-4o/Claude 등 최상위 proprietary 모델보다 약할 수 있어, 합성 데이터 품질 상한 자체가 원래 설계보다 낮을 가능성** — 이는 예산 제약에 따른 의도적 트레이드오프임을 논문에 명시
 - TextRank 기반 커뮤니티 요약은 LLM 서술형 요약 대비 품질이 열위일 가능성이 높음(§5.6 참고, 커뮤니티는 "문장 집합"이 아니라 "엔티티/관계 집합"이라 TextRank 적용 방식 자체가 근사적임)
+- **인간 검수 골드셋(30~50 triple)이 단일 annotator(저자 본인)로 라벨링됨** — inter-annotator agreement를 확보하지 못했으므로, 이 골드셋 대비 정확도 수치는 "저자 본인 판단 기준"이라는 한계를 명시. 여유가 있다면 2인 교차검증으로 보강
+- **도메인별 세부 분석(18개 도메인)은 도메인당 표본이 10개 내외로 작아 탐색적(exploratory) 해석에 한정** — 도메인 간 차이에 대한 확증적 결론은 유보하고, 후속 연구에서 표본 확대가 필요함을 명시
+- **Baseline 비교의 삼각점 한계**: 원 논문(GraphRAG/LightRAG 등)의 GPT-4 기반 보고 수치를 앵커로 병기하더라도, 코드베이스/청킹 방식/평가 프로토콜 차이로 완전히 동일 조건의 비교는 아님 — 어디까지나 "참고 앵커"이지 통제된 재현이 아님을 명시
 
 ## 8. 논문 작성 타임라인 (재산정 — 개인/대학생, 단일 RTX 3090 기준)
 > 원래 10주 계획은 세부 Phase 분해(`graphrag_subprojects_phases.md`, 총 31개 phase) 기준으로 재계산하면 현실적으로 **4~6개월** 규모입니다. 아래는 그 기준의 재산정 타임라인이며, GPU 시간은 무제한이지만 본인의 실제 가용 시간(주당 투입 가능 시간)에 따라 조정하세요.
@@ -149,8 +158,9 @@ llmfree-graphrag/
 │   └── eval/
 │       ├── benchmark.py           # 통합 평가 러너
 │       ├── metrics_cost.py        # GPU-시간/wall-clock 측정 (+ 참고용 API 환산 비용)
-│       ├── metrics_coverage.py    # 고정 평가 서브셋 기준 그래프 커버리지 recall 계산
-│       ├── metrics_qa.py          # QA 정확도 (LLM-as-judge or EM/F1)
+│       ├── metrics_coverage.py    # 고정 평가 서브셋 기준 교사-학생 일치율(agreement) 계산 — 실제 정확도 아님(순환논증 주의)
+│       ├── metrics_gold_accuracy.py  # 인간 검수 골드셋(30~50 triple) 대비 precision/recall — 순환논증 방지용 실제 정확도 지표
+│       ├── metrics_qa.py          # QA 정확도 (LLM-as-judge or EM/F1), 원 논문 보고 수치 앵커 병기
 │       └── metrics_hallucination.py  # source_span 대조 기반 환각률 계산
 ├── baselines/
 │   ├── ms_graphrag_wrapper.py
@@ -208,6 +218,8 @@ llmfree-graphrag/
 ### Stage 7 — 평가 (`eval/`)
 - `benchmark.py`가 모든 baseline + 우리 방법을 동일 데이터셋에 대해 순차 실행
 - 결과를 단일 테이블(csv/markdown)로 자동 집계 → 논문 Table 그대로 사용 가능하게 설계
+- 골드셋 기반 실제 정확도(`metrics_gold_accuracy.py`)와 교사-학생 일치율(`metrics_coverage.py`)을 별도 컬럼으로 병기해 순환논증 여부를 항상 함께 확인 가능하게 출력
+- baseline 비교 Table에는 원 논문 보고 수치(가능한 범위) 컬럼을 추가해 삼각비교 구성
 
 ## 3. 기술 스택 제안
 
@@ -233,7 +245,7 @@ llmfree-graphrag/
 3. baseline wrapper 5종 중 최소 2종(Microsoft GraphRAG, LightRAG) 로컬 LLM 연동 재현 확인 — **가장 리스크 큰 항목이므로 조기에 착수**
 4. `training` SFT 최소 동작 확인 (1 epoch, 작은 데이터)
 5. `graph_construction` 통합 → end-to-end 인덱싱 1개 문서로 smoke test (`retrieval/graph_retriever.py` 포함)
-6. `eval/benchmark.py`로 전체 파이프라인 자동 비교 실행 (고정 평가 서브셋 기준 coverage recall 포함)
+6. `eval/benchmark.py`로 전체 파이프라인 자동 비교 실행 (교사-학생 일치율 + 골드셋 실제 정확도 + baseline 원 논문 앵커 병기 포함)
 7. Ablation 스크립트화 (`notebooks/ablation_analysis.ipynb`)
 
 ---
