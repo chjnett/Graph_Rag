@@ -229,6 +229,17 @@
   }
   .callout b{ color:var(--graph); }
 
+  .risk-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; }
+  .risk-card{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px 17px 17px; }
+  .rk-head{ display:flex; align-items:center; gap:9px; margin-bottom:11px; }
+  .rk-title{ font-size:14px; font-weight:700; }
+  .pill{ font-size:10px; letter-spacing:.03em; padding:3px 9px; border-radius:99px; font-weight:700; flex:none; }
+  .pill.covered{ background:var(--graph-soft); color:var(--graph); }
+  .pill.note{ background:var(--teacher-soft); color:var(--teacher); }
+  .rk-cause{ font-size:12.5px; color:var(--muted); line-height:1.65; margin-bottom:10px; }
+  .rk-fix{ font-size:12.5px; line-height:1.65; color:var(--ink); }
+  .rk-fix .mono{ color:var(--graph); }
+
   footer{ margin-top:64px; border-top:1px solid var(--line-soft); padding-top:26px; }
   .foot-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:22px; }
   .foot-card .t{ font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; font-weight:700; }
@@ -559,6 +570,35 @@
       <div class="item"><span class="swatch dashed"></span> 교차 레인 의존성 (선행 산출물 필요)</div>
       <div class="item"><span style="width:12px;height:12px;border-radius:3px;box-shadow:inset 3px 0 0 var(--teacher);background:var(--surface-2);border:1px solid var(--line);display:inline-block;"></span> 병렬 착수 가능 지점</div>
       <div class="item"><span style="width:12px;height:12px;border-radius:3px;border:1px solid var(--graph);display:inline-block;"></span> 순환논증 방지 핵심 산출물</div>
+    </div>
+  </section>
+
+  <!-- ============ RISK REGISTER ============ -->
+  <section class="block">
+    <h2><span class="n">05</span> 알려진 병목과 대응</h2>
+    <p class="sub">설계 리뷰에서 나온 4개 실행 리스크와 문서상 대응 지점.</p>
+
+    <div class="risk-grid">
+      <div class="risk-card">
+        <div class="rk-head"><span class="pill covered">반영됨</span><span class="rk-title">속도 병목</span></div>
+        <div class="rk-cause">MS GraphRAG/LightRAG를 로컬 32B로 인덱싱하면 GPU가 몇 주간 안 멈출 위험</div>
+        <div class="rk-fix"><span class="mono">Phase 0.5-a0</span> — 3개→10~20개 2단계 파일럿으로 소요시간 외삽, 2주 초과 시 QA 비교 코퍼스를 서브셋으로 축소</div>
+      </div>
+      <div class="risk-card">
+        <div class="rk-head"><span class="pill covered">반영됨</span><span class="rk-title">VRAM 병목</span></div>
+        <div class="rk-cause">32B AWQ 가중치만 ~18~19GB 차지 → 24GB 중 KV 캐시 여유는 ~5GB, OOM 위험</div>
+        <div class="rk-fix"><span class="mono">Phase 0.0-e</span> — gpu-memory-utilization 0.90 캡 + 청크 크기 500~1,000자 제한. Phase 1.2·0.5 양쪽에 적용</div>
+      </div>
+      <div class="risk-card">
+        <div class="rk-head"><span class="pill covered">반영됨</span><span class="rk-title">엔티티 오염</span></div>
+        <div class="rk-cause">임베딩 유사도만 쓰면 과묶임(애플≠사과)과 과소병합(Jobs≠Steve Jobs) 둘 다 발생</div>
+        <div class="rk-fix"><span class="mono">Phase 3.2-b</span>(type 사전필터, 과묶임 방지) + <span class="mono">3.2-b2</span>(별칭 매칭, 과소병합 방지) 2단계 방어선</div>
+      </div>
+      <div class="risk-card">
+        <div class="rk-head"><span class="pill note">조건부</span><span class="rk-title">파괴적 망각</span></div>
+        <div class="rk-cause">학생 모델이 추출 데이터만 학습하면 일반 언어 능력을 잃을 수 있다는 우려</div>
+        <div class="rk-fix">최종 답변 생성은 교사 LLM을 재활용(<span class="mono">3.35-d</span>)해 span 헤드 선택 시 무관. seq2seq 선택 시에만 <span class="mono">Phase 2.3</span> 비율 실험으로 완화(<span class="mono">2.1-a</span> 참고)</div>
+      </div>
     </div>
   </section>
 

@@ -31,7 +31,7 @@ GraphRAG-Bench (난이도별 질문), HotpotQA (supporting facts), MultiHop-RAG 
 ---
 
 ## Phase 0.5 — Baseline 5종 재현 착수 (1주차부터 서브1과 완전 병렬)
-- **0.5-a0** (S, 신규 — 처리량 사전 체크, 다른 sub-step보다 먼저 실행) UltraDomain에서 무작위 10~20개 문서로 Microsoft GraphRAG 표준 인덱싱(엔티티 추출+gleaning 반복+계층적 커뮤니티 요약)을 Phase 0.0 로컬 엔드포인트로 실행, 문서당 소요시간·총 LLM 호출 수 측정 → 428개 전체 외삽 시 예상 소요일수 산출. LightRAG도 동일 절차로 별도 측정(커뮤니티 계층 요약이 없어 상대적으로 가벼울 수 있음)
+- **0.5-a0** (S, 신규 — 처리량 사전 체크, 다른 sub-step보다 먼저 실행, 2단계 파일럿) 1단계: UltraDomain에서 무작위 **3개 문서**로 먼저 Microsoft GraphRAG 표준 인덱싱(엔티티 추출+gleaning 반복+계층적 커뮤니티 요약)을 Phase 0.0 로컬 엔드포인트로 실행, OOM/설정 문제부터 조기 확인. 문제없으면 2단계: **10~20개 문서**로 확장해 문서당 소요시간·총 LLM 호출 수를 측정 → 428개 전체 외삽 시 예상 소요일수 산출(문서 길이 편차가 크면 3개만으로는 외삽 신뢰도가 낮으므로 반드시 2단계까지 진행). LightRAG도 동일 절차로 별도 측정(커뮤니티 계층 요약이 없어 상대적으로 가벼울 수 있음)
   - **의사결정 규칙**: 외삽 추정치가 baseline 1종당 **약 2주**를 넘으면, Phase 4.1~4.5의 QA 비교 코퍼스를 UltraDomain 전체 428개가 아니라 GraphRAG-Bench/HotpotQA/MultiHop-RAG 질문이 실제로 걸쳐 있는 서브셋으로 축소한다. `graphrag_03_graph_construction.md` Phase 3.6의 구조 통계 비교(원 논문 보고 수치 대비)는 이 축소와 무관하게 전체 코퍼스 기준으로 유지 — 그쪽은 baseline을 로컬 재현하는 게 아니라 원 논문 발표 수치와 비교하는 것이라 코퍼스 축소의 영향을 받지 않음. 우리 방법(경량 학생 모델)의 Phase 3.1 전체 코퍼스 추출은 이 규칙과 무관하게 그대로 진행(병목이 아님)
   - Done when: 두 baseline(MS GraphRAG, LightRAG) 각각의 문서당 처리시간 + 전체 외삽 추정치(일 단위) + 코퍼스 축소 여부 결정 확정
   - **산출물**: baseline 처리량 벤치마크 리포트 + 코퍼스 범위 결정 기록
