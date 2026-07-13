@@ -180,6 +180,55 @@
   .lane-connector{ position:absolute; height:1px; background:var(--line-soft); top:26px; }
   .svg-overlay{ position:absolute; top:0; left:140px; pointer-events:none; }
 
+  /* ---------- Concept primer ---------- */
+  .concept-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin-bottom:28px; }
+  .concept-card{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:18px 18px 20px; }
+  .concept-card .k{ font-family:ui-monospace,monospace; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--graph); margin-bottom:9px; font-weight:700; }
+  .concept-card .v{ font-size:13.5px; line-height:1.75; color:var(--ink); }
+  .concept-card .v b{ color:var(--graph); font-weight:600; }
+
+  table.compare{ width:100%; border-collapse:collapse; font-size:13px; min-width:660px; }
+  table.compare th{ text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:700; padding:0 16px 12px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  table.compare td{ padding:14px 16px; border-bottom:1px solid var(--line-soft); vertical-align:middle; }
+  table.compare tr:last-child td{ border-bottom:none; }
+  table.compare tr.highlight td{ background:var(--graph-soft); }
+  table.compare tr.highlight td:first-child{ border-radius:8px 0 0 8px; }
+  table.compare tr.highlight td:last-child{ border-radius:0 8px 8px 0; }
+  table.compare .name{ font-weight:700; }
+  table.compare .tiny{ display:block; font-size:10.5px; color:var(--muted); margin-top:2px; font-weight:400; }
+  table.compare .tiny.risk{ color:var(--risk); }
+  td.muted{ color:var(--muted); font-size:12px; }
+
+  .dots{ display:inline-flex; gap:3px; vertical-align:middle; }
+  .dots i{ width:6px; height:6px; border-radius:50%; background:var(--line); display:inline-block; font-style:normal; }
+  .dots i.on{ background:currentColor; }
+  .dots.good{ color:var(--graph); }
+  .dots.mid{ color:var(--teacher); }
+  .dots.bad{ color:var(--risk); }
+
+  .recap-card{
+    width:172px; flex:none; background:var(--surface); border:1px solid var(--line);
+    border-radius:10px; padding:16px 15px 17px;
+  }
+  .recap-card .step{
+    font-family:ui-monospace,monospace; font-size:11px; color:var(--graph);
+    width:22px; height:22px; border-radius:50%; border:1px solid var(--graph);
+    display:flex; align-items:center; justify-content:center; margin-bottom:13px; font-weight:700;
+  }
+  .recap-card .label{ font-size:15.5px; font-weight:800; margin-bottom:6px; letter-spacing:-.01em; }
+  .recap-card .tech{ font-size:11.5px; color:var(--muted); line-height:1.5; margin-bottom:11px; }
+  .recap-card .ref{
+    font-family:ui-monospace,monospace; font-size:10.5px; color:var(--teacher);
+    padding-top:9px; border-top:1px solid var(--line-soft);
+  }
+
+  .callout{
+    margin-top:22px; padding:16px 20px; background:var(--graph-soft);
+    border-left:3px solid var(--graph); border-radius:0 8px 8px 0;
+    font-size:13.5px; line-height:1.75; color:var(--ink); max-width:80ch;
+  }
+  .callout b{ color:var(--graph); }
+
   footer{ margin-top:64px; border-top:1px solid var(--line-soft); padding-top:26px; }
   .foot-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:22px; }
   .foot-card .t{ font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; font-weight:700; }
@@ -209,9 +258,113 @@
     </div>
   </header>
 
+  <!-- ============ CONCEPT PRIMER ============ -->
+  <section class="block" style="margin-top:0;">
+    <h2><span class="n">01</span> 배경 — 이 프로젝트가 푸는 문제</h2>
+    <p class="sub">RAG와 GraphRAG가 각각 어디서 강하고 약한지, 그 사이에서 이 프로젝트가 정확히 무엇을 해결하려는지.</p>
+
+    <div class="concept-grid">
+      <div class="concept-card">
+        <div class="k">RAG란</div>
+        <div class="v">질의와 관련된 문서 조각(chunk)을 검색해 LLM 생성에 결합하는 방식. 재학습 없이 최신·외부 지식을 답변에 반영할 수 있지만, 검색 단위가 개별 chunk라 여러 사실을 엮어야 하는 <b>멀티홉 질문</b>이나 "코퍼스 전체를 요약해줘" 같은 <b>전역 질문</b>에 약하다.</div>
+      </div>
+      <div class="concept-card">
+        <div class="k">GraphRAG란</div>
+        <div class="v">문서에서 엔티티·관계를 추출해 지식 그래프로 구조화하고, 그 위에서 서브그래프 탐색·커뮤니티 요약으로 검색한다. 멀티홉·전역 질문에 강하지만, 그래프를 만드는 <b>인덱싱 단계에서 문서·커뮤니티마다 LLM을 반복 호출</b>해야 해 비용·지연이 크다 — 개인 연구자·소규모 서비스의 실질적 진입장벽.</div>
+      </div>
+    </div>
+
+    <div class="scroller" style="padding:0 4px 20px; border-top:none;">
+      <table class="compare">
+        <thead>
+          <tr><th>접근법</th><th>인덱싱 비용</th><th>멀티홉 추론</th><th>전역·요약 질문</th><th>실제 정확도</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="name">Naive RAG</td>
+            <td><span class="dots good"><i class="on"></i><i class="on"></i><i class="on"></i></span></td>
+            <td><span class="dots bad"><i class="on"></i><i></i><i></i></span></td>
+            <td><span class="dots bad"><i class="on"></i><i></i><i></i></span></td>
+            <td class="muted">해당 없음</td>
+          </tr>
+          <tr>
+            <td class="name">LLM 기반 GraphRAG<span class="tiny">MS GraphRAG · LightRAG · KAG</span></td>
+            <td><span class="dots bad"><i class="on"></i><i></i><i></i></span></td>
+            <td><span class="dots good"><i class="on"></i><i class="on"></i><i class="on"></i></span></td>
+            <td><span class="dots good"><i class="on"></i><i class="on"></i><i class="on"></i></span></td>
+            <td><span class="dots good"><i class="on"></i><i class="on"></i><i class="on"></i></span></td>
+          </tr>
+          <tr>
+            <td class="name">기존 LLM-Free GraphRAG<span class="tiny">NoLLMRAG · LiteSemRAG 등</span></td>
+            <td><span class="dots good"><i class="on"></i><i class="on"></i><i class="on"></i></span></td>
+            <td><span class="dots mid"><i class="on"></i><i class="on"></i><i></i></span></td>
+            <td><span class="dots mid"><i class="on"></i><i class="on"></i><i></i></span></td>
+            <td><span class="dots bad"><i class="on"></i><i></i><i></i></span><span class="tiny risk">표면통계 의존</span></td>
+          </tr>
+          <tr class="highlight">
+            <td class="name">이 프로젝트<span class="tiny">교사→증류</span></td>
+            <td><span class="dots good"><i class="on"></i><i class="on"></i><i class="on"></i></span></td>
+            <td><span class="dots good"><i class="on"></i><i class="on"></i><i class="on"></i></span></td>
+            <td><span class="dots mid"><i class="on"></i><i class="on"></i><i></i></span><span class="tiny">TextRank 요약 한계</span></td>
+            <td><span class="dots good"><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="tiny">검증 중 · Phase 1.4/2.4</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="callout">
+      <b>해결하려는 문제</b> — GraphRAG의 멀티홉·전역 추론 이점은 유지하면서, (1) LLM 기반 GraphRAG의 인덱싱 비용·지연 문제와
+      (2) 기존 LLM-free 방법의 정확도 손실 문제를 동시에 해결한다. 교사 LLM → 경량 모델 증류 파이프라인으로
+      "인덱싱 시 LLM 호출 0회"와 "실제 정확도 유지"를 함께 달성하는 것이 이 프로젝트의 핵심 기여(C1)다.
+    </p>
+  </section>
+
+  <!-- ============ 4-STEP RECAP ============ -->
+  <section class="block">
+    <h2><span class="n">02</span> 한눈에 보는 4단계</h2>
+    <p class="sub">기술 다이어그램이 낯설다면 — 이 파이프라인은 결국 이런 순서다.</p>
+
+    <div class="scroller" style="border-top:none;">
+      <div class="flow">
+        <div class="recap-card">
+          <div class="step">1</div>
+          <div class="label">로컬 팩토리</div>
+          <div class="tech">Qwen2.5 · 무료 · 대량 생산</div>
+          <div class="ref">Phase 1.2 · 500~1,000청크</div>
+        </div>
+        <div class="arrow" style="margin-top:44px;"></div>
+        <div class="recap-card">
+          <div class="step">2</div>
+          <div class="label">불심 검문</div>
+          <div class="tech">GPT-4o · 소량 · 고품질 대조</div>
+          <div class="ref">Phase 1.6-e/f · ₩1,600</div>
+        </div>
+        <div class="arrow" style="margin-top:44px;"></div>
+        <div class="recap-card">
+          <div class="step">3</div>
+          <div class="label">교통 정리</div>
+          <div class="tech">엔티티 정규화 · 텍스트 통일</div>
+          <div class="ref">Phase 3.2</div>
+        </div>
+        <div class="arrow" style="margin-top:44px;"></div>
+        <div class="recap-card">
+          <div class="step">4</div>
+          <div class="label">지도 제작</div>
+          <div class="tech">Leiden · 그래프 완성</div>
+          <div class="ref">Phase 3.4</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="callout">
+      1→2는 서브1(데이터 생성), 3→4는 서브3(그래프 구축)의 요약이다. 둘 사이에는 <b>경량 모델 증류(서브2)</b>가 있고,
+      그렇게 증류된 학생 모델이 실제로 전체 코퍼스를 추론해 3단계의 원재료(triple)를 만든다.
+    </p>
+  </section>
+
   <!-- ============ PIPELINE ============ -->
   <section class="block">
-    <h2><span class="n">01</span> 엔드투엔드 데이터 흐름</h2>
+    <h2><span class="n">03</span> 엔드투엔드 데이터 흐름</h2>
     <p class="sub">원문 코퍼스에서 다운스트림 QA 평가까지 — 강조된 단계가 이 프레임워크의 핵심 주장(인덱싱 LLM 호출 0회)이다.</p>
 
     <div class="scroller">
@@ -304,7 +457,7 @@
 
   <!-- ============ SWIMLANE ============ -->
   <section class="block">
-    <h2><span class="n">02</span> Phase 의존관계 맵</h2>
+    <h2><span class="n">04</span> Phase 의존관계 맵</h2>
     <p class="sub">6개 레인(공통 인프라 + 서브프로젝트 1~5)의 실행 순서와 교차 의존성. 좌측 막대색은 코어 파이프라인(teal)과 인프라·평가 확장(copper)을 구분한다.</p>
 
     <div class="scroller">
