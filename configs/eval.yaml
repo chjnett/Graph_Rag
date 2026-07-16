@@ -1,0 +1,26 @@
+# configs/eval.yaml — spec.md §7 스키마 그대로
+# corpus_scope 기본값은 subset(안전한 쪽). Phase 0.5-a0 완료 시 갱신할 것.
+
+teacher_endpoint: "http://localhost:8000/v1"
+teacher_model: "Qwen2.5-32B-Instruct-AWQ"
+gpu_memory_utilization: 0.90       # Phase 0.0-e
+chunk_size_chars: [500, 1000]      # Phase 0.0-e
+
+methods: [ours, ms_graphrag, lightrag, litesemrag, deps_parsing, nollmrag]
+datasets: [graphrag_bench, hotpotqa, multihop_rag]
+
+corpus_scope: subset               # full | subset — Phase 0.5-a0 의사결정 규칙으로 확정
+corpus_scope_decided_at: null      # 0.5-a0 완료 시 ISO 날짜 기입
+
+fixed_eval_subset_path: data/synthetic/fixed_eval_subset.jsonl   # graphrag_01 Phase 1.2-f
+gold_set_path: data/synthetic/gold_set.jsonl                     # graphrag_01 Phase 1.6-d/f
+agreement_report_path: reports/sub3_phase3_7.json                # graphrag_03 Phase 3.7
+original_paper_anchor_path: reports/sub3_phase3_6c_anchor.json   # graphrag_03 Phase 3.6-c
+
+seeds: [13, 27, 42]                # Phase 4.1-c 다중 시드
+bootstrap_n: 1000                  # 신뢰구간용, seed 대안/보조
+
+throughput_pilot:                  # Phase 0.5-a0 전용
+  stage1_doc_count: 3
+  stage2_doc_count: 20
+  extrapolation_threshold_days: 14 # 이 값 초과 시 corpus_scope=subset 강제

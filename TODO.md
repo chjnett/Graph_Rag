@@ -5,44 +5,47 @@
 
 ## Milestone 0 — 인프라 확인 (🔓, 최우선)
 
-- [ ] Phase 0.0 vLLM 엔드포인트가 이미 떠 있는지 확인 (`graphrag_00` 담당, 서브4는 소비만)
-- [ ] `configs/eval.yaml` 스킵톤 작성 (spec.md §7 스키마 그대로) — `corpus_scope: subset` 기본값으로 시작
-- [ ] `GraphRAGMethod` / `QAResult` / `Evidence` / `IndexStats` 데이터클래스 구현 (spec.md §4) — 이후 모든 wrapper·metrics가 이 계약에 의존
+- [ ] Phase 0.0 vLLM 엔드포인트가 이미 떠 있는지 확인 (`graphrag_00` 담당, 서브4는 소비만) — 이 환경엔 vLLM/GPU 없음, 미확인 상태
+- [x] `configs/eval.yaml` 스킵톤 작성 (spec.md §7 스키마 그대로) — `corpus_scope: subset` 기본값으로 시작
+- [x] `GraphRAGMethod` / `QAResult` / `Evidence` / `IndexStats` 데이터클래스 구현 (spec.md §4) — `src/eval/interface.py`, 이후 모든 wrapper·metrics가 이 계약에 의존
 
 ## Milestone 1 — Phase 0.5-a0: 처리량 사전 체크 (🔓, 가장 리스크 큰 항목)
+
+> `scripts/throughput_pilot.py` + `tests/test_throughput_pilot.py`(12개, 전부 pass) 작성 완료.
+> 순수 로직(샘플링/리포트 저장/scope 의사결정)은 검증됨. 아래 실행 항목 자체는 로컬 vLLM+GPU+UltraDomain 코퍼스가 있어야 하는 🔒 상태라 미완.
 
 - [ ] (S) 1단계: UltraDomain 무작위 3개 문서로 MS GraphRAG 표준 인덱싱을 로컬 엔드포인트로 실행, OOM/설정 문제 확인
 - [ ] (S) 1단계 통과 시 2단계: 10~20개 문서로 확장, 문서당 소요시간·LLM 호출 수 로깅
 - [ ] (S) LightRAG도 동일 절차로 별도 측정
 - [ ] (S) 428개 전체 외삽 → 예상 소요일수 산출, `throughput_pilot` 결과를 `configs/eval.yaml`에 기록
-- [ ] **의사결정**: baseline당 외삽치가 2주 초과 → `corpus_scope: full` → `subset`으로 변경, 그렇지 않으면 `full` 유지
+- [ ] **의사결정**: baseline당 외삽치가 2주 초과 → `corpus_scope: full` → `subset`으로 변경, 그렇지 않으면 `full` 유지 — 로직/테스트는 `decide_corpus_scope()`로 준비됨, 실행만 남음
 - [ ] Done when: 두 baseline의 처리량 벤치마크 리포트 + `corpus_scope` 확정값이 `eval.yaml`에 반영됨
 
 ## Milestone 2 — Phase 0.5: Baseline wrapper 5종 + 공통 인터페이스 (🔓)
 
-- [ ] (L) `baselines/ms_graphrag_wrapper.py` — 설치, 인덱싱 LLM 호출 지점을 로컬 엔드포인트로 교체, `GraphRAGMethod` 구현
-- [ ] (M) `baselines/lightrag_wrapper.py` — 동일하게 로컬 엔드포인트 연동
-- [ ] (M) `baselines/litesemrag_wrapper.py` — LLM-free 계열, `indexing_llm_calls=0` 하드코딩 후 유닛테스트로 고정
-- [ ] (M) `baselines/deps_parsing_wrapper.py` — arXiv:2507.03226 코드 공개 여부 먼저 확인 (spec.md §9-2 참고), 없으면 논문 기술 기반 최소 재현으로 스코프 축소하고 그 사실을 README에 기록
-- [ ] (M) NoLLMRAG 재현 — wrapper 파일 위치 결정(별도 파일 or litesemrag_wrapper.py에 인접)
-- [ ] (S) 5개 wrapper 전부 `GraphRAGMethod.query()` 반환 타입이 `QAResult`인지 확인하는 계약 테스트 작성
-- [ ] Done when: 5개 baseline 전부 샘플 질의 1건에 정상 응답 + `indexing_llm_calls` 값이 각 방법론 특성과 일치(0 또는 >0)
+- [ ] (L) `baselines/ms_graphrag_wrapper.py` — `GraphRAGMethod` 골격/설정 전달은 구현됨, `graphrag` 패키지 설치 후 실제 인덱싱 LLM 호출 지점 연동은 TODO로 남겨둠(추측 API로 채우지 않음)
+- [ ] (M) `baselines/lightrag_wrapper.py` — 동일 상태(`lightrag-hku` 설치 후 실 연동 필요)
+- [x] (M) `baselines/litesemrag_wrapper.py` — LLM-free 계열, `indexing_llm_calls=0` 하드코딩 + 유닛테스트로 고정(TF-IDF 코사인 유사도 기반 최소 재현, 공식 코드 미확인 명시)
+- [x] (M) `baselines/deps_parsing_wrapper.py` — arXiv:2507.03226 공개 코드 미확인(spec.md §9-2) → spaCy 의존구문분석 SVO 추출로 스코프 축소, 파일 상단에 그 사실 기록
+- [x] (M) NoLLMRAG 재현 — `litesemrag_wrapper.py`에 인접 배치(순수 co-occurrence 빈도 기반)
+- [x] (S) 5개 wrapper 전부 `GraphRAGMethod.query()` 반환 타입이 `QAResult`인지 확인하는 계약 테스트 작성 — `tests/test_baseline_contracts.py`(10개, 9 pass + spaCy 미설치로 1 skip)
+- [ ] Done when: 5개 baseline 전부 샘플 질의 1건에 정상 응답 — litesemrag/nollmrag/deps_parsing 3종은 충족, ms_graphrag/lightrag 2종은 미충족(패키지 미설치)
 
 ## Milestone 3 — `src/eval/metrics_*.py` 구현 (🔓, 목 데이터로 선행 가능)
 
-- [ ] (S) `metrics_cost.py` — `IndexStats` 리스트 → GPU-시간 비교 테이블, (선택) API 환산 비용 병기
-- [ ] (M) `metrics_coverage.py` — `graphrag_03` Phase 3.7 일치율 리포트를 읽어 그대로 노출 (재계산 금지, 순환논증 지표는 서브3 소관)
-- [ ] (M) `metrics_gold_accuracy.py` — 동일하게 서브3 Phase 3.7 골드셋 정확도 리포트 소비
-- [ ] (M) `metrics_qa.py` — `QAResult` 리스트 + 정답 → EM/F1, LLM-as-judge 옵션, 원 논문 앵커 컬럼 병합
-- [ ] (M) `metrics_hallucination.py` — `Evidence.source_span`을 원문과 대조해 환각률 계산
-- [ ] 각 스크립트에 목(mock) `QAResult`/`IndexStats` 기반 유닛테스트 작성 — 서브1/서브3 실제 데이터 없이도 통과해야 함
+- [x] (S) `metrics_cost.py` — `IndexStats` 리스트 → GPU-시간 비교 테이블, (선택) API 환산 비용 병기
+- [x] (M) `metrics_coverage.py` — `graphrag_03` Phase 3.7 일치율 리포트를 읽어 그대로 노출 (재계산 금지, 순환논증 지표는 서브3 소관)
+- [x] (M) `metrics_gold_accuracy.py` — 동일하게 서브3 Phase 3.7 골드셋 정확도 리포트 소비
+- [x] (M) `metrics_qa.py` — `QAResult` 리스트 + 정답 → EM/F1, LLM-as-judge 옵션, 원 논문 앵커 컬럼 병합
+- [x] (M) `metrics_hallucination.py` — `Evidence.source_span`을 원문과 대조해 환각률 계산
+- [x] 각 스크립트에 목(mock) `QAResult`/`IndexStats` 기반 유닛테스트 작성 — `tests/test_metrics.py`(13개, 전부 pass), 서브1/서브3 실제 데이터 없이도 통과 확인됨
 
 ## Milestone 4 — `benchmark.py` 통합 러너 (🔓 골격 / 🔒 실제 실행)
 
-- [ ] (M) `configs/eval.yaml` 파싱 → `methods` 순차 실행 루프 (동시 실행 금지, VRAM 경합 방지)
-- [ ] (S) 결과를 spec.md §8 JSON 스키마로 직렬화
-- [ ] (S) `gold_accuracy`/`original_paper_anchor`가 우리 방법에만 채워지고 baseline에는 null인지 검증하는 테스트
-- [ ] (S) `indexing_llm_calls != 0`인데 LLM-free 계열(litesemrag/nollmrag/ours)로 표시된 경우 assert로 실패시키는 가드 추가
+- [x] (M) `configs/eval.yaml` 파싱 → `methods` 순차 실행 루프 (동시 실행 금지, VRAM 경합 방지) — `load_config`/`sequential_run`, 직렬 실행 순서를 테스트로 증명
+- [x] (S) 결과를 spec.md §8 JSON 스키마로 직렬화 — `serialize_result_row`
+- [x] (S) `gold_accuracy`/`original_paper_anchor`가 우리 방법에만 채워지고 baseline에는 null인지 검증하는 테스트
+- [x] (S) `indexing_llm_calls != 0`인데 LLM-free 계열(litesemrag/nollmrag/ours)로 표시된 경우 assert로 실패시키는 가드 추가 — `tests/test_benchmark.py`(7개, 전부 pass)
 - [ ] 🔒 실제 실행은 Milestone 1~3 + `graphrag_03` Phase 3.35/3.7 산출물 필요
 
 ## Milestone 5 — Phase 4.1~4.3: QA 벤치마크 실행 (🔒)
