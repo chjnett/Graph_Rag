@@ -5,7 +5,7 @@
 
 ## Milestone 0 — 인프라 확인 (🔓, 최우선)
 
-- [ ] Phase 0.0 vLLM 엔드포인트가 이미 떠 있는지 확인 (`graphrag_00` 담당, 서브4는 소비만) — 이 환경엔 vLLM/GPU 없음, 미확인 상태
+- [ ] Phase 0.0 vLLM 엔드포인트가 이미 떠 있는지 확인 (`graphrag_00` 담당, 서브4는 소비만) — **진행 중**: GPU는 RTX 3090 24GB 확인됨(driver 591.86, CUDA 13.1), Windows 네이티브 torch는 CPU 전용이라 사용 불가 → WSL2 Ubuntu 26.04로 전환(GPU passthrough 정상). `chj` 계정에 기존 Miniconda 발견, 전용 conda 환경 `graphrag`(Python 3.11) 생성. **vLLM 0.25.1 + torch 2.11.0+cu130 설치 완료, GPU 인식 확인됨**(`torch.cuda.is_available() == True`, `NVIDIA GeForce RTX 3090`). 교사 모델은 **Qwen2.5-32B-Instruct-AWQ**로 확정(사용자 선택, spec.md 기본값) — 아직 다운로드 전. 남은 것: 모델 다운로드(~19GB) → 0.0-e VRAM 안전장치(`--gpu-memory-utilization 0.90`, chunk 500~1,000자) 적용해 OpenAI 호환 서버 기동 → 샘플 요청 응답 확인
 - [x] `configs/eval.yaml` 스킵톤 작성 (spec.md §7 스키마 그대로) — `corpus_scope: subset` 기본값으로 시작
 - [x] `GraphRAGMethod` / `QAResult` / `Evidence` / `IndexStats` 데이터클래스 구현 (spec.md §4) — `src/eval/interface.py`, 이후 모든 wrapper·metrics가 이 계약에 의존
 
