@@ -5,6 +5,7 @@
 > `sub4-mac-noGPU` 브랜치에서 작업. 원본 마일스톤 정의는 `TODO.md`/`spec.md` 참고.
 > 우선순위는 난이도(쉬운 것부터) 기준. 항목 간 의존관계 없음 — 순서는 참고용, 막히면 다음 항목으로 넘어가도 됨.
 > 범위 밖(제외): 클라우드 GPU 대여를 통한 `throughput_pilot` 실행 — 이건 별도 결정/트래킹으로 관리.
+> 5~7번은 원래 서브4가 아니라 서브1/서브3 소관이지만, "GPU로 만든 산출물이 없어도 되는" 항목이라 이번 주에 한해 여기 포함. GPU 복구 후 각 서브프로젝트 문서로 옮겨서 정합성 확인할 것.
 
 ## 1. spaCy 스킵 테스트 해결 (Milestone 2 보충)
 
@@ -33,6 +34,26 @@
 - [ ] `lightrag_wrapper.py`의 `index()`/`query()`를 실제 API 호출로 구현 (더미 서버 대상)
 - [ ] `tests/test_baseline_contracts.py::test_gpu_backed_wrappers_fail_clearly_without_package`를 "설치 시 더미 서버로 정상 동작" 케이스까지 확장
 - [ ] Done when: 두 wrapper 모두 `NotImplementedError` 제거, 더미 서버 대상 `index()`+`query()` 성공. 실제 vLLM(GPU) 대상 검증은 원격 연결 복구 후 별도 확인
+
+## 5. 원 논문 앵커 수치 수집 (서브3 Phase 3.6-c 대응, 가장 쉬움)
+
+- [ ] MS GraphRAG / LightRAG 원 논문에서 GPT-4(o) 기준 보고 정확도·비용 수치 정리
+- [ ] `configs/eval.yaml`의 `original_paper_anchor_path`(`reports/sub3_phase3_6c_anchor.json`) 스키마에 맞춰 초안 작성
+- [ ] Done when: 두 baseline 논문의 anchor 수치가 JSON으로 정리되고 출처(논문/표 번호) 주석 포함
+
+## 6. INPUT — 코퍼스 준비 (서브1 대응)
+
+- [ ] UltraDomain 등 원문 코퍼스 확보 경로 확인(HuggingFace/공식 repo 등) 및 다운로드
+- [ ] 500~1,000자 청크 분할 스크립트 작성 (Phase 0.0-e 청크 크기 상한과 동일 기준)
+- [ ] Done when: 최소 1개 도메인 문서 세트가 청크 단위 JSONL로 로컬에 존재, 청크 크기 분포가 500~1,000자 범위 내
+
+## 7. INDEX — LLM-free 그래프 구축 프로토타입 (서브3 대응, 가장 오래 걸림)
+
+- [ ] spec.md §4 triple 스키마(`entity1, entity1_type, relation, entity2, entity2_type, source_span, confidence`)를 따르는 목(mock) triple 세트 작성 — 교사 모델 출력 없이 프로토타입 목적
+- [ ] Leiden 커뮤니티 탐지 구현/연동 (예: `python-igraph` + `leidenalg`, 또는 `networkx` 대안)
+- [ ] 엔티티 정규화(별칭 통합) 로직 작성
+- [ ] TextRank 기반 커뮤니티 요약 구현
+- [ ] Done when: 목 triple 세트를 입력으로 그래프(NetworkX pickle 등)가 만들어지고, 인덱싱 과정에 LLM 호출이 0회임을 테스트로 증명 (spec.md §4 `IndexStats.llm_calls == 0`)
 
 ---
 
