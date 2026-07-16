@@ -26,6 +26,8 @@
 - [ ] (범위 밖, 명시적 스킵) coreference resolution — 별도 라이브러리(fastcoref 등) 필요, 이번 재현에서 구현 안 함
 - [ ] (후속, 🔒) 논문 보고 수치(Context Precision 61.07%, Semantic Alignment 61.87%, Full Coverage 51.08%) 대비 재현 결과 비교 스크립트 — 서브1 골드셋 필요해 지금은 스킵
 
+## 2. 기존 테스트 엣지케이스 보강 (전 Milestone 공통)
+
 - [ ] `tests/test_metrics.py` — 빈 `QAResult` 리스트, 정답 없음 등 경계값 케이스 추가
 - [ ] `tests/test_benchmark.py` — 빈 `methods` 리스트, `indexing_llm_calls` 위반 케이스 추가 확인
 - [ ] `tests/test_throughput_pilot.py` — 0건/1건 샘플링 등 경계값 케이스 추가
