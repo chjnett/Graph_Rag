@@ -207,3 +207,13 @@ throughput_pilot:                  # Phase 0.5-a0 전용
 | Full Coverage Rate | 51.08% | 58.99% | 86.6% |
 
 **현재 재현 상태 vs 논문 원문 — 격차 (2026-07-16 기준)**: `baselines/deps_parsing_wrapper.py`는 위 2단계(SVO 추출)만 최소 재현했고, 1단계 전처리(문장 필터링)와 3단계 후처리(수동태 정규화/엔티티 병합/coreference/불용어 제거) 및 4단계 `Concept` 타입 부여는 아직 없음. 이 격차는 `TODO_mac.md`에서 관리.
+
+## 9-3. `original_paper_anchor` 앵커 방법론 결정 (2026-07-16)
+
+MS GraphRAG(arXiv:2404.16130)·LightRAG(arXiv:2410.05779) 원 논문을 §8 `original_paper_anchor` 컬럼(EM/F1 병기 전제)의 1차 소스로 쓰려 했으나, 조사 결과 두 논문 다 **EM/F1을 보고하지 않는다** — GPT-4(o)를 심사자로 쓴 LLM-as-judge 승률(comprehensiveness/diversity/empowerment)이고, 평가 코퍼스도 우리와 다르다(MS GraphRAG: 팟캐스트/뉴스 기사, LightRAG: UltraDomain 일부만 공유). 같은 컬럼에 숫자로 병기하면 서로 다른 지표를 동일선상에 놓는 오해를 부른다.
+
+**결정**: GraphRAG-Bench 자체 논문(arXiv:2506.05690, "When to use Graphs in RAG")의 Table 2 — 이 논문이 GraphRAG-Bench 벤치마크로 MS GraphRAG/LightRAG를 직접 accuracy(%)로 재평가한 수치 — 를 1차 앵커로 채택. 우리 프로젝트가 쓰는 GraphRAG-Bench 데이터셋과 동일 조건이라 직접 비교 가능. 원 논문의 win-rate 수치는 `reports/sub3_phase3_6c_anchor.json`의 `qualitative_notes`에 참고용으로만 병기(§8 `original_paper_anchor` 컬럼에는 넣지 않음).
+
+**미해결**: HotpotQA/MultiHop-RAG용 MS GraphRAG·LightRAG EM/F1 앵커는 아직 못 찾음 — 두 원 논문 모두 이 데이터셋으로 평가하지 않음. 제3자 재평가 논문이 있는지 추가 조사 필요.
+
+**검증 필요**: `reports/sub3_phase3_6c_anchor.json`의 GraphRAG-Bench 수치는 arXiv HTML 파싱 기반으로 수집됨 — 논문에 실제 인용하기 전 PDF 원문 Table 2와 대조 재확인 권장.

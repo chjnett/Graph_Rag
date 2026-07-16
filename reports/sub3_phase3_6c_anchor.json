@@ -1,0 +1,86 @@
+{
+  "_meta": {
+    "collected_at": "2026-07-16",
+    "collected_by": "sub4-mac-noGPU 브랜치 — GPU 없이 진행한 문헌조사 (TODO_mac.md #5)",
+    "purpose": "spec.md §8 benchmark.py 출력 스키마의 original_paper_anchor 컬럼 채움 — 삼각비교 앵커",
+    "caveat": "MS GraphRAG(arXiv:2404.16130)·LightRAG(arXiv:2410.05779) 원 논문은 EM/F1이 아니라 GPT-4(o) 심사 기반 LLM-as-judge 승률(comprehensiveness/diversity/empowerment)을 보고하며, 평가 코퍼스도 우리와 다르다(팟캐스트·뉴스 / UltraDomain 일부). 그래서 이 파일은 두 원 논문 수치를 1차 앵커로 쓰지 않는다. 대신 GraphRAG-Bench 자체 논문(arXiv:2506.05690, 'When to use Graphs in RAG')이 GraphRAG-Bench 벤치마크로 MS GraphRAG/LightRAG를 accuracy(%) 기준으로 재평가한 Table 2를 1차 앵커로 사용한다 — 우리 프로젝트가 쓰는 GraphRAG-Bench 데이터셋과 동일 조건이라 직접 비교 가능. 원 논문 win-rate 수치는 qualitative_notes에 참고용으로만 남긴다.",
+    "verification_needed": "아래 graphrag_bench 수치는 arXiv HTML(2506.05690v3) 파싱 기반으로 수집됨 — 논문에 실제로 인용하기 전에 PDF 원문 Table 2와 대조 재확인 권장"
+  },
+  "graphrag_bench": {
+    "source": "arXiv:2506.05690 (\"When to use Graphs in RAG: A Comprehensive Analysis for Graph Retrieval-Augmented Generation\"), Table 2",
+    "judge_model": "GPT-4o-mini",
+    "domains": ["novel", "medical"],
+    "metric": "accuracy (%), 난이도별",
+    "ms_graphrag": {
+      "novel": {
+        "fact_retrieval": 49.29,
+        "complex_reasoning": 50.93,
+        "contextual_summarization": 64.40,
+        "creative_generation": 39.10
+      },
+      "medical": {
+        "fact_retrieval": 38.63,
+        "complex_reasoning": 47.04,
+        "contextual_summarization": 41.87,
+        "creative_generation": 53.11
+      }
+    },
+    "lightrag": {
+      "novel": {
+        "fact_retrieval": 58.62,
+        "complex_reasoning": 49.07,
+        "contextual_summarization": 48.85,
+        "creative_generation": 23.80
+      },
+      "medical": {
+        "fact_retrieval": 63.32,
+        "complex_reasoning": 61.32,
+        "contextual_summarization": 63.14,
+        "creative_generation": 67.91
+      }
+    },
+    "basic_rag_reference": {
+      "novel": {
+        "fact_retrieval": 60.92,
+        "complex_reasoning": 42.93,
+        "contextual_summarization": 51.30,
+        "creative_generation": 38.26
+      },
+      "medical": {
+        "fact_retrieval": 64.73,
+        "complex_reasoning": 58.64,
+        "contextual_summarization": 65.75,
+        "creative_generation": 60.61
+      },
+      "note": "GraphRAG 계열 baseline은 아니지만 논문의 핵심 발견('단순 사실검색에선 Basic RAG가 GraphRAG와 비슷하거나 우수')을 이해하는 데 필요해 참고로 포함"
+    }
+  },
+  "hotpotqa": null,
+  "multihop_rag": null,
+  "_todo": "hotpotqa/multihop_rag용 MS GraphRAG·LightRAG EM/F1 앵커는 아직 못 찾음 — 두 원 논문 모두 이 데이터셋으로 평가하지 않음. 제3자 재평가 논문 있는지 추가 조사 필요",
+  "qualitative_notes": {
+    "ms_graphrag_original_paper": {
+      "source": "arXiv:2404.16130 (\"From Local to Global: A Graph RAG Approach to Query-Focused Summarization\")",
+      "metric": "LLM-as-judge win-rate vs vector RAG(SS baseline), judge = GPT-4 / GPT-4-turbo, 5회 반복 평균",
+      "eval_corpus": "팟캐스트 대본(~1M tokens, 1,669 chunks) · 뉴스 기사(~1.7M tokens, 3,197 chunks) — 우리 UltraDomain/GraphRAG-Bench와 다른 코퍼스",
+      "reported_approx": "Comprehensiveness·Diversity 72~82% win rate vs vector RAG (커뮤니티 계층 C0~C3), Directness는 vector RAG가 우위 — 근사치, 원문 Table 재확인 필요"
+    },
+    "lightrag_original_paper": {
+      "source": "arXiv:2410.05779 (\"LightRAG: Simple and Fast Retrieval-Augmented Generation\")",
+      "metric": "LLM-as-judge win-rate vs MS GraphRAG, judge = GPT-4o-mini",
+      "eval_corpus": "UltraDomain Agriculture/CS/Legal/Mix (각 2.0M~5.1M tokens) — 우리 UltraDomain 서브셋과 일부 겹침",
+      "diversity_win_rate_graphrag_vs_lightrag": {
+        "agriculture": "22.8% vs 77.2%",
+        "cs": "40.8% vs 59.2%",
+        "legal": "26.4% vs 73.6%",
+        "mix": "36.0% vs 64.0%"
+      },
+      "comprehensiveness_win_rate_graphrag_vs_lightrag": {
+        "agriculture": "45.6% vs 54.4%",
+        "cs": "48.4% vs 51.6%",
+        "legal": "48.4% vs 51.6%",
+        "mix": "50.4% vs 49.6%"
+      }
+    }
+  }
+}

@@ -49,11 +49,14 @@
 - [ ] `tests/test_baseline_contracts.py::test_gpu_backed_wrappers_fail_clearly_without_package`를 "설치 시 더미 서버로 정상 동작" 케이스까지 확장
 - [ ] Done when: 두 wrapper 모두 `NotImplementedError` 제거, 더미 서버 대상 `index()`+`query()` 성공. 실제 vLLM(GPU) 대상 검증은 원격 연결 복구 후 별도 확인
 
-## 5. 원 논문 앵커 수치 수집 (서브3 Phase 3.6-c 대응, 가장 쉬움)
+## 5. 원 논문 앵커 수치 수집 (서브3 Phase 3.6-c 대응) — ✅ 완료 (2026-07-16)
 
-- [ ] MS GraphRAG / LightRAG 원 논문에서 GPT-4(o) 기준 보고 정확도·비용 수치 정리
-- [ ] `configs/eval.yaml`의 `original_paper_anchor_path`(`reports/sub3_phase3_6c_anchor.json`) 스키마에 맞춰 초안 작성
-- [ ] Done when: 두 baseline 논문의 anchor 수치가 JSON으로 정리되고 출처(논문/표 번호) 주석 포함
+- [x] MS GraphRAG / LightRAG 원 논문 조사 — **설계 재검토 발견**: 두 원 논문 다 EM/F1이 아니라 GPT-4(o) 심사 기반 LLM-as-judge 승률(comprehensiveness/diversity/empowerment)을 보고, 평가 코퍼스도 우리와 다름(팟캐스트·뉴스 / UltraDomain 일부)
+- [x] 대안 발견 및 채택: GraphRAG-Bench 자체 논문(arXiv:2506.05690)이 같은 GraphRAG-Bench 벤치마크로 MS GraphRAG/LightRAG를 accuracy(%)로 재평가한 Table 2 — 이걸 1차 앵커로 사용
+- [x] `reports/sub3_phase3_6c_anchor.json` 작성 — GraphRAG-Bench Table 2 수치(1차 앵커) + 두 원 논문 win-rate(qualitative_notes, 참고용) + 출처/판별 근거 전부 명시
+- [x] `.gitignore`의 `reports/` 패턴이 이 파일까지 무시하는 문제 발견 → `reports/*` + `!reports/sub3_phase3_6c_anchor.json` 예외로 수정
+- [ ] (후속) hotpotqa/multihop_rag용 앵커는 못 찾음 — 두 원 논문 다 이 데이터셋 평가 안 함, 추가 조사 필요(JSON에 `_todo`로 기록)
+- [x] Done when: anchor 수치가 JSON으로 정리되고 출처(논문/표 번호) 주석 포함 — 단, 수치는 arXiv HTML 파싱 기반이라 인용 확정 전 PDF 원문 Table 2 대조 재확인 필요(JSON `verification_needed` 필드에 기록)
 
 ## 6. INPUT — 코퍼스 준비 (서브1 대응)
 
