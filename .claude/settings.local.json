@@ -8,7 +8,8 @@
       "Bash(find / -iname \"SKILL.md\" -path \"*academic-paper*\")",
       "Bash(find / -iname \"MODE_REGISTRY.md\")",
       "Skill(artifact-design)",
-      "Artifact"
+      "Artifact",
+      "Bash(git checkout *)"
     ]
   }
 }
