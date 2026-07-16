@@ -7,12 +7,24 @@
 > 범위 밖(제외): 클라우드 GPU 대여를 통한 `throughput_pilot` 실행 — 이건 별도 결정/트래킹으로 관리.
 > 5~7번은 원래 서브4가 아니라 서브1/서브3 소관이지만, "GPU로 만든 산출물이 없어도 되는" 항목이라 이번 주에 한해 여기 포함. GPU 복구 후 각 서브프로젝트 문서로 옮겨서 정합성 확인할 것.
 
-## 1. spaCy 스킵 테스트 해결 (Milestone 2 보충)
+## 1. spaCy 스킵 테스트 해결 (Milestone 2 보충) — ✅ 완료 (2026-07-16)
 
-- [ ] `pip install spacy` + `python -m spacy download en_core_web_sm`
-- [ ] Done when: `tests/test_baseline_contracts.py::test_deps_parsing_wrapper_end_to_end`가 skip 없이 pass
+- [x] `.venv` 생성 + `pip install -r requirements.txt` + `pip install spacy` + `python -m spacy download en_core_web_sm`
+- [x] Done when: `tests/test_baseline_contracts.py::test_deps_parsing_wrapper_end_to_end`가 skip 없이 pass — 10/10 pass 확인
 
-## 2. 기존 테스트 엣지케이스 보강 (전 Milestone 공통)
+## 1-2. `deps_parsing_wrapper.py` 논문(arXiv:2507.03226) 충실도 개선 — ✅ 완료 (2026-07-16)
+
+> spec.md §9-2에 논문 아키텍처 정리 완료. 코드는 `baselines/deps_parsing_wrapper.py`.
+
+- [x] 전처리: 동사구 없는 문장 필터링 (spaCy `sent`에 `VERB` 토큰 없으면 skip)
+- [x] 후처리: 수동태 정규화 (`nsubjpass` + `agent`(by-구) 있을 때만 능동태로 swap, 없으면 스킵)
+- [x] 후처리: 다중토큰 엔티티 병합 (`noun_chunks` 기반으로 subj/obj를 명사구 전체로 교체)
+- [x] 후처리: 짧은 엔티티(2자 미만)·불용어 제거
+- [x] 엔티티 타입: 모든 노드에 `type="Concept"` 속성 부여
+- [x] 샘플 문장(능동태 "SAP launched Joule for Consultants.", 수동태 "The new product was developed by the engineering team.")으로 직접 실행 확인 — 수동태가 `(the engineering team) --[develop]--> (The new product)`로 정상 정규화됨
+- [x] `tests/` 전체 43개 pass 유지 확인
+- [ ] (범위 밖, 명시적 스킵) coreference resolution — 별도 라이브러리(fastcoref 등) 필요, 이번 재현에서 구현 안 함
+- [ ] (후속, 🔒) 논문 보고 수치(Context Precision 61.07%, Semantic Alignment 61.87%, Full Coverage 51.08%) 대비 재현 결과 비교 스크립트 — 서브1 골드셋 필요해 지금은 스킵
 
 - [ ] `tests/test_metrics.py` — 빈 `QAResult` 리스트, 정답 없음 등 경계값 케이스 추가
 - [ ] `tests/test_benchmark.py` — 빈 `methods` 리스트, `indexing_llm_calls` 위반 케이스 추가 확인
