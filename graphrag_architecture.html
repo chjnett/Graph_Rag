@@ -92,6 +92,24 @@
   .dot.t{ background:var(--teacher); }
   .dot.r{ background:var(--risk); }
 
+  .status-line{
+    display:flex; align-items:flex-start; gap:10px; margin-top:16px;
+    padding:12px 16px; background:var(--graph-soft); border:1px solid var(--graph);
+    border-radius:8px; font-size:13px; line-height:1.65; color:var(--ink); max-width:80ch;
+  }
+  .status-line .status-dot{
+    width:8px; height:8px; border-radius:50%; background:var(--graph); flex:none; margin-top:6px;
+    box-shadow:0 0 0 3px var(--graph-soft);
+  }
+  @media (prefers-reduced-motion: no-preference){
+    .status-line .status-dot{ animation:pulse 2.4s ease-in-out infinite; }
+  }
+  @keyframes pulse{
+    0%,100%{ opacity:1; } 50%{ opacity:.4; }
+  }
+  .status-line b{ color:var(--graph); }
+  .status-line .n{ font-family:ui-monospace,monospace; color:var(--graph); font-weight:700; }
+
   /* ---------- Section shell ---------- */
   section.block{ margin-top:56px; }
   .block h2{
@@ -113,8 +131,23 @@
   .flow{ display:flex; align-items:flex-start; gap:0; min-width:max-content; padding:0 8px; position:relative; }
   .stage{
     width:172px; flex:none; background:var(--surface); border:1px solid var(--line);
-    border-radius:10px; padding:14px 14px 15px; position:relative;
+    border-left:3px solid var(--line); border-radius:10px; padding:14px 14px 15px; position:relative;
+    cursor:pointer; text-align:left; font-family:inherit; color:inherit;
+    transition:transform .12s ease, box-shadow .12s ease;
   }
+  .stage:hover{ transform:translateY(-2px); }
+  .stage:focus-visible{ outline:2px solid var(--graph); outline-offset:2px; }
+  .stage.is-active{ box-shadow:0 0 0 1px var(--graph); }
+  .stage[data-gpu="ok"]{ border-left-color:var(--graph); }
+  .stage[data-gpu="partial"]{ border-left-color:var(--teacher); }
+  .stage[data-gpu="blocked"]{ border-left-color:var(--risk); }
+  .stage .gpu-tag{
+    position:absolute; top:12px; right:12px; font-family:ui-monospace,monospace;
+    font-size:9px; letter-spacing:.04em; padding:2px 6px; border-radius:99px;
+  }
+  .stage[data-gpu="ok"] .gpu-tag{ background:var(--graph-soft); color:var(--graph); }
+  .stage[data-gpu="partial"] .gpu-tag{ background:var(--teacher-soft); color:var(--teacher); }
+  .stage[data-gpu="blocked"] .gpu-tag{ background:var(--risk-soft); color:var(--risk); }
   .stage .idx{ font-family:ui-monospace,monospace; font-size:11px; color:var(--muted); margin-bottom:8px; }
   .stage .t{ font-size:14px; font-weight:700; line-height:1.35; margin-bottom:6px; }
   .stage .d{ font-size:12px; color:var(--muted); line-height:1.55; }
@@ -138,7 +171,11 @@
   .satellite{
     width:172px; background:var(--surface-2); border:1px dashed var(--line);
     border-radius:9px; padding:11px 13px; font-size:11.5px; color:var(--muted); line-height:1.55;
+    cursor:pointer; text-align:left; font-family:inherit; transition:transform .12s ease;
   }
+  .satellite:hover{ transform:translateY(-2px); }
+  .satellite:focus-visible{ outline:2px solid var(--graph); outline-offset:2px; }
+  .satellite.is-active{ border-style:solid; border-color:var(--graph); }
   .satellite .t{ font-size:12.5px; font-weight:700; color:var(--ink); margin-bottom:4px; }
   .satellite .t.teacher{ color:var(--teacher); }
 
@@ -153,6 +190,24 @@
   .legend .swatch{ width:20px; height:0; border-top:2px solid var(--line); }
   .legend .swatch.dashed{ border-top:2px dashed var(--muted); }
   .legend .swatch.solid-accent{ border-top:2px solid var(--graph); }
+  .legend .bar{ width:3px; height:14px; border-radius:2px; display:inline-block; }
+  .legend .bar.ok{ background:var(--graph); }
+  .legend .bar.partial{ background:var(--teacher); }
+  .legend .bar.blocked{ background:var(--risk); }
+
+  /* ---------- Stage detail (dynamic panel) ---------- */
+  .stage-detail{
+    margin-top:18px; background:var(--surface); border:1px solid var(--line); border-radius:10px;
+    padding:18px 20px 20px; transition:opacity .15s ease;
+  }
+  .stage-detail .sd-head{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .stage-detail .sd-idx{ font-family:ui-monospace,monospace; font-size:11px; color:var(--muted); }
+  .stage-detail .sd-title{ font-size:15.5px; font-weight:800; }
+  .stage-detail dl{ display:grid; grid-template-columns:104px 1fr; gap:8px 16px; margin:0; font-size:13px; }
+  .stage-detail dt{ color:var(--muted); font-family:ui-monospace,monospace; font-size:11.5px; padding-top:2px; }
+  .stage-detail dd{ margin:0; line-height:1.65; }
+  .stage-detail dd .mono{ color:var(--graph); }
+  .stage-detail .sd-hint{ font-size:11.5px; color:var(--muted); margin-top:2px; }
 
   /* ---------- Swimlane ---------- */
   .swim-wrap{ position:relative; }
@@ -263,9 +318,13 @@
     </p>
     <div class="chips">
       <div class="chip"><span class="dot t"></span><span class="k">GPU</span><span class="v">RTX 3090 · 24GB · 무제한</span></div>
-      <div class="chip"><span class="dot t"></span><span class="k">API 예산</span><span class="v">₩10,000 · 검증 전용</span></div>
+      <div class="chip"><span class="dot t"></span><span class="k">API 예산</span><span class="v">₩20,000 · 검증 전용</span></div>
       <div class="chip"><span class="dot g"></span><span class="k">일정</span><span class="v">4–6개월</span></div>
       <div class="chip"><span class="dot r"></span><span class="k">최대 리스크</span><span class="v">Phase 0.5 baseline 재현</span></div>
+    </div>
+    <div class="status-line">
+      <span class="status-dot"></span>
+      <span><b>지금 상태 (2026-07-16)</b> — 윈도우(RTX 3090) 원격 연결 끊김, 복구까지 약 1주 예상. 맥에서 <code class="mono">sub4-mac-noGPU</code> 브랜치로 GPU 없이 가능한 작업만 진행 중. 아래 <span class="n">03</span>의 좌측 색 막대가 각 단계의 GPU 필요 여부를 나타낸다.</span>
     </div>
   </header>
 
@@ -381,7 +440,8 @@
     <div class="scroller">
       <div class="flow">
 
-        <div class="stage">
+        <div class="stage" data-gpu="ok" data-key="input" tabindex="0" role="button" aria-pressed="false">
+          <span class="gpu-tag">맥 가능</span>
           <div class="idx">INPUT</div>
           <div class="t">원문 코퍼스</div>
           <div class="d">UltraDomain 외 7종 데이터셋 (428개 교재, 18개 도메인)</div>
@@ -390,13 +450,15 @@
 
         <div class="col-stack">
           <div class="row-mid">
-            <div class="stage">
+            <div class="stage" data-gpu="blocked" data-key="teacher" tabindex="0" role="button" aria-pressed="false">
+              <span class="gpu-tag">GPU 필수</span>
               <div class="idx">TEACHER</div>
               <div class="t">로컬 교사 LLM</div>
               <div class="d">Qwen2.5-32B-AWQ · vLLM 서빙 · 4bit 양자화</div>
             </div>
             <div class="arrow"></div>
-            <div class="stage">
+            <div class="stage" data-gpu="blocked" data-key="gen" tabindex="0" role="button" aria-pressed="false">
+              <span class="gpu-tag">GPU 필수</span>
               <div class="idx">GEN</div>
               <div class="t">합성 데이터 생성</div>
               <div class="d">문서 → triple · 500~1,000청크 · self-consistency confidence</div>
@@ -404,7 +466,7 @@
           </div>
           <div class="branch-col" style="align-items:flex-start; margin-left:206px;">
             <div class="branch-link dashed"></div>
-            <div class="satellite">
+            <div class="satellite" data-key="gpt4o-check" tabindex="0" role="button" aria-pressed="false">
               <div class="t teacher">GPT-4o 검증 (₩1,600)</div>
               고정 서브셋 150~200청크 sanity-check + 골드셋 2차 라벨러(κ) — 인덱싱과 무관, 오프라인 QA 전용
             </div>
@@ -412,14 +474,16 @@
         </div>
 
         <div class="arrow"></div>
-        <div class="stage">
+        <div class="stage" data-gpu="blocked" data-key="distill" tabindex="0" role="button" aria-pressed="false">
+          <span class="gpu-tag">GPU 필수</span>
           <div class="idx">DISTILL</div>
           <div class="t">경량 모델 SFT</div>
           <div class="d">QLoRA/LoRA · 보조데이터 비율 실험(0/10/30/50%)</div>
         </div>
         <div class="arrow"></div>
 
-        <div class="stage hero">
+        <div class="stage hero" data-gpu="ok" data-key="index" tabindex="0" role="button" aria-pressed="false">
+          <span class="gpu-tag">맥 가능</span>
           <div class="idx">INDEX</div>
           <div class="t">그래프 구축</div>
           <div class="big">0</div>
@@ -427,7 +491,8 @@
         </div>
         <div class="arrow"></div>
 
-        <div class="stage">
+        <div class="stage" data-gpu="partial" data-key="retrieve" tabindex="0" role="button" aria-pressed="false">
+          <span class="gpu-tag">부분 가능</span>
           <div class="idx">RETRIEVE</div>
           <div class="t">검색 인터페이스</div>
           <div class="d">쿼리 → 1~2hop 서브그래프 탐색 · 랭킹</div>
@@ -436,20 +501,21 @@
 
         <div class="col-stack">
           <div class="branch-col" style="align-items:flex-start; margin-left:0;">
-            <div class="satellite" style="margin-bottom:0;">
+            <div class="satellite" data-key="baselines" tabindex="0" role="button" aria-pressed="false" style="margin-bottom:0;">
               <div class="t">Baseline 5종</div>
-              MS GraphRAG · LightRAG · LiteSemRAG · dep-parsing · NoLLMRAG (로컬 LLM 인덱싱으로 통일)
+              MS GraphRAG · LightRAG · LiteSemRAG · dep-parsing · NoLLMRAG (로컬 LLM 인덱싱으로 통일) — LLM-free 3종 완료
             </div>
             <div class="branch-link dashed"></div>
           </div>
-          <div class="stage" style="margin-top:0;">
+          <div class="stage" data-gpu="partial" data-key="output" tabindex="0" role="button" aria-pressed="false" style="margin-top:0;">
+            <span class="gpu-tag">골격만</span>
             <div class="idx">OUTPUT</div>
             <div class="t">다운스트림 QA 평가</div>
             <div class="d">비용(GPU-시간) · 정확도 · 환각률 · 도메인 적응 격차</div>
           </div>
           <div class="branch-col" style="align-items:flex-start; margin-left:0;">
             <div class="branch-link dashed"></div>
-            <div class="satellite teacher" style="margin-top:0;">
+            <div class="satellite teacher" data-key="anchor" tabindex="0" role="button" aria-pressed="false" style="margin-top:0;">
               <div class="t teacher">원논문 앵커</div>
               GraphRAG/LightRAG의 GPT-4 보고 수치 — 삼각비교용 참고열
             </div>
@@ -460,9 +526,20 @@
     </div>
 
     <div class="legend">
-      <div class="item"><span class="swatch"></span> 순차 데이터 흐름</div>
+      <div class="item"><span class="bar ok"></span> 맥에서 GPU 없이 가능</div>
+      <div class="item"><span class="bar partial"></span> 부분 가능 (배선/골격만)</div>
+      <div class="item"><span class="bar blocked"></span> GPU 필수 (현재 블록)</div>
       <div class="item"><span class="swatch dashed"></span> 검증/비교용 보조 입력 (인덱싱 경로 아님)</div>
-      <div class="item"><span class="swatch solid-accent"></span> 핵심 주장 지점</div>
+    </div>
+
+    <div class="stage-detail" id="stageDetail">
+      <div class="sd-head"><span class="sd-idx mono">INPUT</span><span class="sd-title">원문 코퍼스</span></div>
+      <dl>
+        <dt>설명</dt><dd>UltraDomain(HuggingFace <span class="mono">TommyChien/UltraDomain</span>, 428개 대학교재·18개 도메인) + GraphRAG-Bench + HotpotQA + MultiHop-RAG + DocRED + SciERC + WebNLG + FewRel</dd>
+        <dt>담당</dt><dd>서브1 — <span class="mono">graphrag_01_data_pipeline.md</span></dd>
+        <dt>현재 상태</dt><dd>미착수. <span class="mono">TODO_mac.md</span> #6 대상 — 경로 확인·다운로드·500~1,000자 청크 분할</dd>
+      </dl>
+      <div class="sd-hint">단계를 클릭하면 이 패널이 갱신됩니다.</div>
     </div>
   </section>
 
@@ -599,6 +676,11 @@
         <div class="rk-cause">학생 모델이 추출 데이터만 학습하면 일반 언어 능력을 잃을 수 있다는 우려</div>
         <div class="rk-fix">최종 답변 생성은 교사 LLM을 재활용(<span class="mono">3.35-d</span>)해 span 헤드 선택 시 무관. seq2seq 선택 시에만 <span class="mono">Phase 2.3</span> 비율 실험으로 완화(<span class="mono">2.1-a</span> 참고)</div>
       </div>
+      <div class="risk-card">
+        <div class="rk-head"><span class="pill note">검토 중</span><span class="rk-title">원논문 앵커 비교 방식</span></div>
+        <div class="rk-cause">MS GraphRAG·LightRAG 원 논문은 EM/F1이 아니라 GPT-4(o) 심사 기반 LLM-as-judge 승률을 보고 — 우리 지표와 같은 컬럼에 두면 오해 소지</div>
+        <div class="rk-fix">정성적 각주로 전환하거나, GraphRAG-Bench 자체 논문(<span class="mono">arXiv:2506.05690</span>)의 EM/F1 재평가를 앵커로 대체하는 방안 검토 중 — <span class="mono">spec.md §9-2</span></div>
+      </div>
     </div>
   </section>
 
@@ -608,7 +690,7 @@
       <div class="foot-card">
         <div class="t">API 예산 배분</div>
         <div class="v">
-          Sanity-check(1.6-e) <span class="mono">₩1,300</span> · 골드셋 2차 라벨러(1.6-f) <span class="mono">₩300</span> · 버퍼 <span class="mono">₩8,000+</span>
+          Sanity-check(1.6-e) <span class="mono">₩1,300</span> · 골드셋 2차 라벨러(1.6-f) <span class="mono">₩300</span> · 버퍼 <span class="mono">₩18,400+</span>
         </div>
       </div>
       <div class="foot-card">
@@ -620,7 +702,119 @@
         <div class="v">교사-학생 <b>일치율</b>(3.7-b)과 골드셋 <b>실제 정확도</b>(3.7-d)를 분리 산출해 순환논증 방지</div>
       </div>
     </div>
-    <p class="src">출처: graphrag_00_overview.md · graphrag_01_data_pipeline.md · graphrag_02_distillation.md · graphrag_03_graph_construction.md · graphrag_04_evaluation.md · graphrag_05_domain_adaptation.md</p>
+    <p class="src">출처: graphrag_00_overview.md · graphrag_01_data_pipeline.md · graphrag_02_distillation.md · graphrag_03_graph_construction.md · graphrag_04_evaluation.md · graphrag_05_domain_adaptation.md · spec.md · TODO.md · TODO_mac.md</p>
   </footer>
 
 </div>
+
+<script>
+  const STAGE_INFO = {
+    input: {
+      idx: "INPUT", title: "원문 코퍼스",
+      rows: [
+        ["설명", 'UltraDomain(HuggingFace <span class="mono">TommyChien/UltraDomain</span>, 428개 대학교재·18개 도메인) + GraphRAG-Bench + HotpotQA + MultiHop-RAG + DocRED + SciERC + WebNLG + FewRel'],
+        ["담당", '서브1 — <span class="mono">graphrag_01_data_pipeline.md</span>'],
+        ["현재 상태", '미착수. <span class="mono">TODO_mac.md</span> #6 대상 — 경로 확인·다운로드·500~1,000자 청크 분할']
+      ]
+    },
+    teacher: {
+      idx: "TEACHER", title: "로컬 교사 LLM",
+      rows: [
+        ["설명", 'Qwen2.5-32B-Instruct-AWQ, vLLM 서빙, 4bit 양자화. VRAM 안전장치(Phase 0.0-e): <span class="mono">--gpu-memory-utilization 0.90</span>, 청크 500~1,000자 상한'],
+        ["담당", '공통 인프라 — <span class="mono">graphrag_00_overview.md</span> Phase 0.0'],
+        ["현재 상태", 'WSL2 Ubuntu 26.04 GPU passthrough 확인, vLLM 0.25.1 + torch 2.11.0+cu130 설치 완료. 모델 다운로드(~19GB) 직전에 원격 연결 끊김으로 중단']
+      ]
+    },
+    gen: {
+      idx: "GEN", title: "합성 데이터 생성",
+      rows: [
+        ["설명", '문서 → triple, 500~1,000자 청크, self-consistency confidence 필터링'],
+        ["담당", '서브1 — <span class="mono">graphrag_01_data_pipeline.md</span> Phase 1.0~1.6'],
+        ["현재 상태", 'TEACHER 서빙 완료 대기 중, 착수 전']
+      ]
+    },
+    distill: {
+      idx: "DISTILL", title: "경량 모델 SFT",
+      rows: [
+        ["설명", 'QLoRA/LoRA 파인튜닝, 보조 데이터 비율 ablation(0/10/30/50%)'],
+        ["담당", '서브2 — <span class="mono">graphrag_02_distillation.md</span> Phase 2.0~2.6'],
+        ["현재 상태", '미착수 — GEN 산출물(합성 데이터) 필요']
+      ]
+    },
+    index: {
+      idx: "INDEX", title: "그래프 구축 (핵심 주장)",
+      rows: [
+        ["설명", '엔티티 정규화, Leiden 커뮤니티 탐지, TextRank 요약. 정의상 인덱싱 시점 LLM 호출 0회 — CPU만으로 구현'],
+        ["담당", '서브3 — <span class="mono">graphrag_03_graph_construction.md</span> Phase 3.0~3.7'],
+        ["현재 상태", '미착수. <span class="mono">TODO_mac.md</span> #7 대상 — 목(mock) triple로 지금 프로토타입 가능']
+      ]
+    },
+    retrieve: {
+      idx: "RETRIEVE", title: "검색 인터페이스",
+      rows: [
+        ["설명", '쿼리 → 1~2hop 서브그래프 탐색 → 랭킹. baseline 5종을 같은 로컬 LLM 인덱싱으로 통일해 공정 비교'],
+        ["담당", '서브3(검색 인터페이스 3.35) + 서브4(baseline wrapper 0.5)'],
+        ["현재 상태", 'LLM-free 3종(LiteSemRAG·NoLLMRAG·dep-parsing) 완료 — dep-parsing은 arXiv:2507.03226 방법론 재현까지 마침. GPU-backed 2종(MS GraphRAG·LightRAG)은 <span class="mono">TODO_mac.md</span> #4로 더미 서버 배선까지만 진행 예정']
+      ]
+    },
+    output: {
+      idx: "OUTPUT", title: "다운스트림 QA 평가",
+      rows: [
+        ["설명", '비용(GPU-시간)·정확도(EM/F1)·환각률·도메인 적응 격차를 한 표로. <span class="mono">benchmark.py</span>가 순차 실행(VRAM 경합 방지) 오케스트레이션'],
+        ["담당", '서브4 — <span class="mono">graphrag_04_evaluation.md</span> Phase 4.1~4.5'],
+        ["현재 상태", 'metrics 스크립트 + 목데이터 유닛테스트 43개 pass. 실제 실행은 서브1·서브3 산출물 대기']
+      ]
+    },
+    "gpt4o-check": {
+      idx: "GEN 보조", title: "GPT-4o 검증 (₩1,600)",
+      rows: [
+        ["설명", '고정 서브셋 150~200청크 sanity-check + 골드셋 2차 라벨러 κ — 인덱싱 경로가 아니라 오프라인 QA 전용'],
+        ["담당", '서브1 — Phase 1.6-e/f'],
+        ["현재 상태", 'TEACHER 서빙 이후 착수 — 예산 ₩1,600은 ₩20,000 중 검증 전용으로 고정 배분']
+      ]
+    },
+    baselines: {
+      idx: "RETRIEVE 보조", title: "Baseline 5종",
+      rows: [
+        ["구성", 'MS GraphRAG, LightRAG(GPU-backed) · LiteSemRAG, dep-parsing(arXiv:2507.03226), NoLLMRAG(LLM-free)'],
+        ["원칙", '전부 같은 로컬 LLM 인덱싱 엔드포인트로 통일 — 저자 코드를 개선하지 않고 config만 바꿔 재현'],
+        ["현재 상태", 'LLM-free 3종 완료(계약 테스트 10개 pass). GPU-backed 2종은 <span class="mono">index()</span>/<span class="mono">query()</span>가 아직 <span class="mono">NotImplementedError</span>']
+      ]
+    },
+    anchor: {
+      idx: "OUTPUT 보조", title: "원논문 앵커",
+      rows: [
+        ["목적", 'MS GraphRAG·LightRAG 원 논문 보고 수치를 OUTPUT 표에 참고열로 병기해 삼각비교'],
+        ["⚠ 조사 중 발견", 'MS GraphRAG·LightRAG 원 논문은 EM/F1이 아니라 GPT-4(o) 심사자 기반 <b>LLM-as-judge 승률</b>(comprehensiveness/diversity/empowerment)을 보고하고, 평가 코퍼스도 우리와 다르다(LightRAG은 UltraDomain 일부만 공유). 같은 컬럼에 숫자로 병기하면 오해 소지 — 정성적 각주 처리 또는 GraphRAG-Bench 자체 논문(arXiv:2506.05690)의 EM/F1 재평가를 앵커로 쓰는 대안 검토 중'],
+        ["현재 상태", '조사 진행 중 — <span class="mono">reports/sub3_phase3_6c_anchor.json</span> 초안 작성 예정']
+      ]
+    }
+  };
+
+  const detailEl = document.getElementById('stageDetail');
+  const triggers = document.querySelectorAll('.stage[data-key], .satellite[data-key]');
+
+  function renderDetail(key) {
+    const info = STAGE_INFO[key];
+    if (!info) return;
+    const rowsHtml = info.rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+    detailEl.innerHTML = `
+      <div class="sd-head"><span class="sd-idx mono">${info.idx}</span><span class="sd-title">${info.title}</span></div>
+      <dl>${rowsHtml}</dl>
+      <div class="sd-hint">단계를 클릭하면 이 패널이 갱신됩니다.</div>
+    `;
+  }
+
+  triggers.forEach(el => {
+    el.addEventListener('click', () => {
+      triggers.forEach(t => { t.classList.remove('is-active'); t.setAttribute('aria-pressed', 'false'); });
+      el.classList.add('is-active');
+      el.setAttribute('aria-pressed', 'true');
+      renderDetail(el.dataset.key);
+      detailEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+    });
+  });
+</script>
