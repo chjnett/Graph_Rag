@@ -26,12 +26,12 @@
 - [ ] (범위 밖, 명시적 스킵) coreference resolution — 별도 라이브러리(fastcoref 등) 필요, 이번 재현에서 구현 안 함
 - [ ] (후속, 🔒) 논문 보고 수치(Context Precision 61.07%, Semantic Alignment 61.87%, Full Coverage 51.08%) 대비 재현 결과 비교 스크립트 — 서브1 골드셋 필요해 지금은 스킵
 
-## 2. 기존 테스트 엣지케이스 보강 (전 Milestone 공통)
+## 2. 기존 테스트 엣지케이스 보강 (전 Milestone 공통) — ✅ 완료 (2026-07-16)
 
-- [ ] `tests/test_metrics.py` — 빈 `QAResult` 리스트, 정답 없음 등 경계값 케이스 추가
-- [ ] `tests/test_benchmark.py` — 빈 `methods` 리스트, `indexing_llm_calls` 위반 케이스 추가 확인
-- [ ] `tests/test_throughput_pilot.py` — 0건/1건 샘플링 등 경계값 케이스 추가
-- [ ] Done when: 추가한 케이스 포함해 전체 테스트 스위트 pass
+- [x] `tests/test_metrics.py` — 빈 `QAResult`/예측·정답 리스트, `compare_costs({})`, `hallucination_rate([], {})` 등 경계값 케이스 추가
+- [x] `tests/test_benchmark.py` — `sequential_run({}, ...)` 빈 methods 케이스 추가. `indexing_llm_calls` 위반 케이스는 기존 파라미터화 테스트로 이미 커버됨을 확인
+- [x] `tests/test_throughput_pilot.py` — `sample_docs(n=0)`, `sample_docs(n=1)` 경계값 케이스 추가
+- [x] Done when: 추가한 케이스 포함해 전체 테스트 스위트 pass — 57/57 pass
 
 ## 3. Milestone 5/6 스크립트 골격 + 목데이터 테스트 선작성
 
@@ -58,11 +58,12 @@
 - [ ] (후속) hotpotqa/multihop_rag용 앵커는 못 찾음 — 두 원 논문 다 이 데이터셋 평가 안 함, 추가 조사 필요(JSON에 `_todo`로 기록)
 - [x] Done when: anchor 수치가 JSON으로 정리되고 출처(논문/표 번호) 주석 포함 — 단, 수치는 arXiv HTML 파싱 기반이라 인용 확정 전 PDF 원문 Table 2 대조 재확인 필요(JSON `verification_needed` 필드에 기록)
 
-## 6. INPUT — 코퍼스 준비 (서브1 대응)
+## 6. INPUT — 코퍼스 준비 (서브1 대응) — ✅ 완료 (2026-07-16)
 
-- [ ] UltraDomain 등 원문 코퍼스 확보 경로 확인(HuggingFace/공식 repo 등) 및 다운로드
-- [ ] 500~1,000자 청크 분할 스크립트 작성 (Phase 0.0-e 청크 크기 상한과 동일 기준)
-- [ ] Done when: 최소 1개 도메인 문서 세트가 청크 단위 JSONL로 로컬에 존재, 청크 크기 분포가 500~1,000자 범위 내
+- [x] UltraDomain 확보 경로 확인 — HuggingFace `TommyChien/UltraDomain`, 18개 도메인 jsonl(agriculture/art/.../technology). 크기가 가장 작은 `mix.jsonl`(5.7MB, 61개 문서, LightRAG 논문 Mix 서브셋과 일치)을 `data/raw/mix.jsonl`로 다운로드
+- [x] `scripts/prepare_corpus.py` 작성 — `context` 필드 기준 문서 중복 제거 → 500~1,000자 청크 분할. 상한(1,000자)이 VRAM 안전장치의 실제 제약이라 하한 미달보다 우선 — 병합해도 상한을 넘으면 병합하지 않고 짧은 꼬리 청크를 그대로 둠
+- [x] `tests/test_prepare_corpus.py` 작성(7개, 전부 pass) — 상한 미준수, 병합 경계, 빈 입력, 중복 제거 케이스 포함
+- [x] Done when: mix 도메인 61개 문서 → 2,676개 청크로 `data/processed/mix_chunks.jsonl` 생성, 2,642/2,676(98.7%)이 500~1,000자 범위 내, 나머지 34개는 전부 문서 끝 500자 미만 꼬리 청크(허용된 예외, 상한 위반 0건)
 
 ## 7. INDEX — LLM-free 그래프 구축 프로토타입 (서브3 대응, 가장 오래 걸림)
 
