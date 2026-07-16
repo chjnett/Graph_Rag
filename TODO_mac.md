@@ -6,6 +6,8 @@
 > 우선순위는 난이도(쉬운 것부터) 기준. 항목 간 의존관계 없음 — 순서는 참고용, 막히면 다음 항목으로 넘어가도 됨.
 > 범위 밖(제외): 클라우드 GPU 대여를 통한 `throughput_pilot` 실행 — 이건 별도 결정/트래킹으로 관리.
 > 5~7번은 원래 서브4가 아니라 서브1/서브3 소관이지만, "GPU로 만든 산출물이 없어도 되는" 항목이라 이번 주에 한해 여기 포함. GPU 복구 후 각 서브프로젝트 문서로 옮겨서 정합성 확인할 것.
+>
+> **✅ 1~7번 전부 완료 (2026-07-16).** 남은 건 파일 하단 "GPU 복구 후 처리할 것" 뿐 — 원격 연결이 돌아오면 그것부터 확인.
 
 ## 1. spaCy 스킵 테스트 해결 (Milestone 2 보충) — ✅ 완료 (2026-07-16)
 
@@ -71,13 +73,15 @@
 - [x] `tests/test_prepare_corpus.py` 작성(7개, 전부 pass) — 상한 미준수, 병합 경계, 빈 입력, 중복 제거 케이스 포함
 - [x] Done when: mix 도메인 61개 문서 → 2,676개 청크로 `data/processed/mix_chunks.jsonl` 생성, 2,642/2,676(98.7%)이 500~1,000자 범위 내, 나머지 34개는 전부 문서 끝 500자 미만 꼬리 청크(허용된 예외, 상한 위반 0건)
 
-## 7. INDEX — LLM-free 그래프 구축 프로토타입 (서브3 대응, 가장 오래 걸림)
+## 7. INDEX — LLM-free 그래프 구축 프로토타입 (서브3 대응) — ✅ 완료 (2026-07-16)
 
-- [ ] spec.md §4 triple 스키마(`entity1, entity1_type, relation, entity2, entity2_type, source_span, confidence`)를 따르는 목(mock) triple 세트 작성 — 교사 모델 출력 없이 프로토타입 목적
-- [ ] Leiden 커뮤니티 탐지 구현/연동 (예: `python-igraph` + `leidenalg`, 또는 `networkx` 대안)
-- [ ] 엔티티 정규화(별칭 통합) 로직 작성
-- [ ] TextRank 기반 커뮤니티 요약 구현
-- [ ] Done when: 목 triple 세트를 입력으로 그래프(NetworkX pickle 등)가 만들어지고, 인덱싱 과정에 LLM 호출이 0회임을 테스트로 증명 (spec.md §4 `IndexStats.llm_calls == 0`)
+- [x] 목(mock) triple 세트 작성 — `tests/fixtures/mock_triples.json`(spec.md §1 triple 스키마 준수, 교사 모델 출력 없이 손으로 작성). triple 6개, 노드 8개, 서로 무관한 두 클러스터(Apple/Steve Jobs 쪽, Wimbledon 쪽)로 구성해 커뮤니티 탐지가 실제로 나뉘는지 검증 가능하게 함
+- [x] Leiden 커뮤니티 탐지 — `src/graph_construction/community_detection.py`. `python-igraph`+`leidenalg` 설치해서 진짜 Leiden 사용, 둘 중 하나라도 없으면 `networkx.community.louvain_communities`로 자동 대체(ImportError 캐치)
+- [x] 엔티티 정규화 — `src/graph_construction/entity_normalization.py`. 대소문자/공백만 다른 표기를 canonical key로 병합(예: "steve jobs" → "Steve Jobs"), 완전히 다른 표기(약어 등) 병합은 스코프 밖으로 명시
+- [x] TextRank 기반 커뮤니티 요약 — `src/graph_construction/community_summary.py`. TF-IDF(scikit-learn) + `networkx.pagerank`만 사용, LLM 호출 없음
+- [x] `src/graph_construction/build_graph.py` — 위 세 모듈을 엮은 오케스트레이션(`build_graph`/`summarize_communities`/`index_from_triples`). `GraphRAGMethod.query()`(검색, Phase 3.35)는 이 프로토타입 스코프 밖 — 실제 학생 모델 triple이 있어야 의미 있어서 서브3 자체 작업으로 남김
+- [x] 테스트 15개 신규(`test_entity_normalization.py`, `test_community_detection.py`, `test_community_summary.py`, `test_build_graph.py`) — 전체 85개 중 83 pass + 2 skip
+- [x] Done when: 목 triple 세트를 입력으로 그래프가 만들어지고, 인덱싱 과정에 LLM 호출이 0회임을 테스트로 증명 — `test_index_from_triples_llm_calls_always_zero`로 확인, 커뮤니티도 실제로 2개로 분리됨 확인
 
 ---
 

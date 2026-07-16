@@ -109,6 +109,11 @@ src/eval/
 ├── metrics_hallucination.py# Evidence.source_span 대조 기반 환각률
 ├── difficulty_split.py     # GraphRAG-Bench 난이도별(4단계) 질문 분리 — Phase 4.1-a
 └── report_table.py         # 논문용 Table 초안 + 난이도별 성능 분해 그룹화 — Phase 4.5-a/b
+src/graph_construction/    # 우리 방법(LLM-free INDEX) 프로토타입 — graphrag_03 Phase 3.0~3.5, 서브3 소관이나 GPU 불필요해 서브4에서 선행 착수(TODO_mac.md #7)
+├── entity_normalization.py # 별칭 통합 (Phase 3.2)
+├── community_detection.py  # Leiden(또는 networkx Louvain 대체) — Phase 3.4
+├── community_summary.py    # TextRank 커뮤니티 요약 — Phase 3.5
+└── build_graph.py          # 위 세 모듈 오케스트레이션. query()(Phase 3.35)는 서브3 자체 작업 — 실제 학생 모델 triple 필요
 configs/
 └── eval.yaml                # §7 스키마
 ```

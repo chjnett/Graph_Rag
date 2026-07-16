@@ -1,0 +1,56 @@
+[
+  {
+    "entity1": "Steve Jobs",
+    "entity1_type": "PERSON",
+    "relation": "founded",
+    "entity2": "Apple",
+    "entity2_type": "ORGANIZATION",
+    "source_span": "Steve Jobs founded Apple in Cupertino.",
+    "confidence": 0.95
+  },
+  {
+    "entity1": "Apple",
+    "entity1_type": "ORGANIZATION",
+    "relation": "released",
+    "entity2": "Macintosh",
+    "entity2_type": "PRODUCT",
+    "source_span": "Apple released the first Macintosh in 1984.",
+    "confidence": 0.92
+  },
+  {
+    "entity1": "Tim Cook",
+    "entity1_type": "PERSON",
+    "relation": "succeeded",
+    "entity2": "Steve Jobs",
+    "entity2_type": "PERSON",
+    "source_span": "Tim Cook succeeded Steve Jobs as chief executive.",
+    "confidence": 0.9
+  },
+  {
+    "entity1": "Serena Williams",
+    "entity1_type": "PERSON",
+    "relation": "won",
+    "entity2": "Wimbledon",
+    "entity2_type": "EVENT",
+    "source_span": "Serena Williams won Wimbledon multiple times.",
+    "confidence": 0.93
+  },
+  {
+    "entity1": "Wimbledon",
+    "entity1_type": "EVENT",
+    "relation": "located_in",
+    "entity2": "London",
+    "entity2_type": "LOCATION",
+    "source_span": "Wimbledon is located in London.",
+    "confidence": 0.97
+  },
+  {
+    "entity1": "Roger Federer",
+    "entity1_type": "PERSON",
+    "relation": "competed_at",
+    "entity2": "Wimbledon",
+    "entity2_type": "EVENT",
+    "source_span": "Roger Federer competed at Wimbledon many times.",
+    "confidence": 0.91
+  }
+]

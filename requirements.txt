@@ -5,6 +5,9 @@ scikit-learn
 pytest
 spacy              # Phase 0.5-d: deps_parsing_wrapper.py (+ `python -m spacy download en_core_web_sm`)
 
+python-igraph       # Phase 3.4: src/graph_construction/community_detection.py의 Leiden 탐지 (미설치 시 networkx Louvain으로 자동 대체)
+leidenalg           # 위와 동일
+
 # 선택 — 설치돼야 실제 실행 가능한 것들 (미설치 시 해당 wrapper는 명확한 에러로 실패)
 # ⚠️ graphrag(3.x)는 Python <3.14 필요 — .venv는 3.12로 만들 것(3.14에선 설치 자체가 안 됨)
 # graphrag          # Phase 0.5-a: MS GraphRAG 재현, tests/test_gpu_backed_wrappers_integration.py
