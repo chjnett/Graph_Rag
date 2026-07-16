@@ -219,3 +219,14 @@ MS GraphRAG(arXiv:2404.16130)·LightRAG(arXiv:2410.05779) 원 논문을 §8 `ori
 **미해결**: HotpotQA/MultiHop-RAG용 MS GraphRAG·LightRAG EM/F1 앵커는 아직 못 찾음 — 두 원 논문 모두 이 데이터셋으로 평가하지 않음. 제3자 재평가 논문이 있는지 추가 조사 필요.
 
 **검증 필요**: `reports/sub3_phase3_6c_anchor.json`의 GraphRAG-Bench 수치는 arXiv HTML 파싱 기반으로 수집됨 — 논문에 실제 인용하기 전 PDF 원문 Table 2와 대조 재확인 권장.
+
+## 9-4. `ms_graphrag_wrapper.py`/`lightrag_wrapper.py` 더미 서버 배선 검증 (2026-07-16)
+
+GPU 복구 전이라 실제 vLLM 대신 로컬 더미 OpenAI 호환 서버(`tests/fixtures/dummy_llm_server.py`)로 배선만 검증했다. 실제로 부딪혀서 확인한 두 라이브러리의 관용도 차이:
+
+- **MS GraphRAG(3.x)**: 프롬프트 형식에 엄격하다. 엔티티 추출 결과가 0건이면 `ValueError`로 하드 크래시하고, community_reports 단계는 litellm이 응답을 JSON 스키마로 검증해 형식이 안 맞으면 `JSONSchemaValidationError`가 난다. 또 `graphrag.api.build_index()`(Python API)는 CLI(`graphrag index`)가 자동으로 해주는 `validate_config_names()`(연결성 확인 + 임베딩 차원 자동 동기화)를 해주지 않아서, 직접 호출하지 않으면 임베딩 차원 불일치로 벡터스토어 적재가 죽는다.
+- **LightRAG(1.x)**: 자체 `llm_model_func`/`embedding_func` 콜백 구조라 훨씬 관대하다 — 형식 없는 더미 응답도 그대로 통과.
+
+LLM 호출 수 계측: litellm의 `callbacks`/`success_callback` 콜백 등록 방식은 실제로 호출되지 않는 것을 확인해(버전 이슈로 추정) 대신 `litellm.completion/acompletion/embedding/aembedding`을 직접 monkeypatch(실행 후 원복)해서 카운트한다. LightRAG는 콜백을 우리가 직접 주입하므로 monkeypatch 없이 그 안에서 바로 센다.
+
+**미해결**: 실제 vLLM(GPU) 엔드포인트 대상 재검증은 원격 연결 복구 후 진행 — `TODO_mac.md` "GPU 복구 후 처리할 것" 참고.

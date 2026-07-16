@@ -40,14 +40,20 @@
 - [x] `4.5-a/b` Table 초안 / 난이도별 성능 분해 — `src/eval/report_table.py`(`build_markdown_table`, `group_by_difficulty`). 실제 그래프 렌더링(matplotlib 등)은 스코프 밖 — 그룹화된 데이터까지만 제공. `tests/test_report_table.py`(4개)
 - [x] Done when: 각 스크립트 최소 1개 이상 유닛테스트 pass — 68/68 전체 pass (실제 데이터 연동은 여전히 🔒, 서브1/서브3 산출물 필요)
 
-## 4. `ms_graphrag_wrapper.py` / `lightrag_wrapper.py` 실연동 (가장 오래 걸림)
+## 4. `ms_graphrag_wrapper.py` / `lightrag_wrapper.py` 실연동 — ✅ 완료 (2026-07-16)
 
-- [ ] `pip install graphrag lightrag-hku`, 설치된 버전의 실제 config/API 확인
-- [ ] 로컬 더미 HTTP 서버(OpenAI 호환 응답 흉내) 작성 — 실제 vLLM 없이 배선만 검증
-- [ ] `ms_graphrag_wrapper.py`의 `index()`/`query()`를 실제 API 호출로 구현 (더미 서버 대상)
-- [ ] `lightrag_wrapper.py`의 `index()`/`query()`를 실제 API 호출로 구현 (더미 서버 대상)
-- [ ] `tests/test_baseline_contracts.py::test_gpu_backed_wrappers_fail_clearly_without_package`를 "설치 시 더미 서버로 정상 동작" 케이스까지 확장
-- [ ] Done when: 두 wrapper 모두 `NotImplementedError` 제거, 더미 서버 대상 `index()`+`query()` 성공. 실제 vLLM(GPU) 대상 검증은 원격 연결 복구 후 별도 확인
+> ⚠️ `graphrag`(3.x)는 Python 3.14를 지원하지 않아 `.venv`를 python3.12로 재생성함(requirements.txt에 메모).
+
+- [x] `pip install graphrag lightrag-hku` — graphrag 3.1.0, lightrag-hku 1.5.4 설치 확인
+- [x] 로컬 더미 HTTP 서버 — `tests/fixtures/dummy_llm_server.py`. graphrag는 프롬프트 내용(entity 추출/community report 마커)에 따라 형식이 맞는 응답을 골라줘야 함(그냥 아무 문자열이면 `ValueError`/`JSONSchemaValidationError`로 죽음) — 실제로 부딪혀서 알아낸 것들:
+  - entity 추출 실패 시 즉시 `ValueError("No entities detected")`로 하드 크래시(개별 문서 단위는 관대해도 전체가 0건이면 크래시)
+  - community_reports는 litellm이 구조화 출력 스키마(JSON) 검증까지 함 — 형식 안 맞으면 `JSONSchemaValidationError`
+  - `graphrag.api.build_index()`는 CLI가 자동으로 해주는 `validate_config_names()`(연결성 확인 + 임베딩 차원 자동 동기화)를 안 해줌 — 직접 호출 안 하면 임베딩 차원 불일치로 벡터스토어 적재가 죽음
+  - LightRAG는 자체 콜백 구조(`llm_model_func`/`embedding_func`)라 형식에 훨씬 관대함 — 더미 응답 그대로 통과
+- [x] `ms_graphrag_wrapper.py` 실연동 — `graphrag.cli.initialize.initialize_project_at` + `graphrag.config.load_config` + `graphrag.api.build_index`/`local_search`. LLM 호출 수는 litellm 콜백(`.callbacks`/`.success_callback`) 둘 다 실제로는 호출 안 되는 걸 확인해서, 대신 `litellm.completion/acompletion/embedding/aembedding`을 직접 monkeypatch해서 셈
+- [x] `lightrag_wrapper.py` 실연동 — `lightrag.LightRAG` + `openai_complete_if_cache`/`openai_embed` 콜백 주입. 자체 콜백 구조라 LLM 호출 수는 monkeypatch 없이 직접 카운트
+- [x] `tests/test_gpu_backed_wrappers_integration.py` 신규 작성(2개) — 기존 `test_baseline_contracts.py`의 "미설치 시 실패" 테스트는 그대로 두고, "설치 시 정상 동작"은 별도 통합테스트 파일로 분리(관심사 분리가 명확해서 이 편이 낫다고 판단)
+- [x] Done when: 두 wrapper 모두 `NotImplementedError` 제거, 더미 서버 대상 `index()`+`query()` 성공 — 확인됨(전체 70개 중 68 pass + 2 skip, skip은 패키지가 이제 설치돼서 "미설치" 테스트가 정상적으로 건너뛰는 것). 실제 vLLM(GPU) 대상 검증은 원격 연결 복구 후 별도 확인
 
 ## 5. 원 논문 앵커 수치 수집 (서브3 Phase 3.6-c 대응) — ✅ 완료 (2026-07-16)
 
