@@ -30,3 +30,35 @@ def compare_costs(
 
     rows.sort(key=lambda r: r["gpu_hours"])
     return rows
+
+
+def aggregate_ours_gpu_hours(stage_gpu_hours: dict[str, float]) -> float:
+    """서브1(데이터 생성)+서브2(증류)+서브3(그래프 구축) GPU-시간 합산 — spec.md Phase 4.4-a.
+
+    baseline은 index() 한 번의 GPU-시간이 전부지만, 우리 방법은 증류 파이프라인
+    전체(데이터 생성·SFT·그래프 구축)를 거치므로 동일 단위로 비교하려면 단계별
+    GPU-시간을 먼저 합산해야 한다.
+    """
+    return sum(stage_gpu_hours.values())
+
+
+def compare_total_costs(
+    ours_stage_gpu_hours: dict[str, float], baseline_stats: dict[str, IndexStats]
+) -> list[dict]:
+    """우리 방법(단계 합산) vs baseline 각각(index() 1회)의 GPU-시간을 동일 단위로 비교 — Phase 4.4-b.
+
+    baseline은 `stage_breakdown=None`(단일 인덱싱 호출), 우리 방법은 단계별 분해를
+    `stage_breakdown`에 남겨 어느 단계가 비용을 지배하는지 추적 가능하게 한다.
+    """
+    rows = [
+        {
+            "method": "ours",
+            "gpu_hours": aggregate_ours_gpu_hours(ours_stage_gpu_hours),
+            "stage_breakdown": dict(ours_stage_gpu_hours),
+        }
+    ]
+    for method, stats in baseline_stats.items():
+        rows.append({"method": method, "gpu_hours": stats.gpu_hours, "stage_breakdown": None})
+
+    rows.sort(key=lambda r: r["gpu_hours"])
+    return rows

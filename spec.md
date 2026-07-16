@@ -106,7 +106,9 @@ src/eval/
 ├── metrics_coverage.py     # 교사-학생 일치율 (graphrag_03 Phase 3.7 리포트 소비, 재계산 아님)
 ├── metrics_gold_accuracy.py# 골드셋 실제 정확도 (동일)
 ├── metrics_qa.py           # QAResult 리스트 → EM/F1/LLM-as-judge, 원 논문 앵커 병기
-└── metrics_hallucination.py# Evidence.source_span 대조 기반 환각률
+├── metrics_hallucination.py# Evidence.source_span 대조 기반 환각률
+├── difficulty_split.py     # GraphRAG-Bench 난이도별(4단계) 질문 분리 — Phase 4.1-a
+└── report_table.py         # 논문용 Table 초안 + 난이도별 성능 분해 그룹화 — Phase 4.5-a/b
 configs/
 └── eval.yaml                # §7 스키마
 ```

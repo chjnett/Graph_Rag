@@ -7,7 +7,7 @@ import json
 import pytest
 
 from src.eval.interface import Evidence, IndexStats, QAResult
-from src.eval.metrics_cost import compare_costs
+from src.eval.metrics_cost import aggregate_ours_gpu_hours, compare_costs, compare_total_costs
 from src.eval.metrics_coverage import load_agreement_report
 from src.eval.metrics_gold_accuracy import load_gold_accuracy_report
 from src.eval.metrics_hallucination import hallucination_rate
@@ -34,6 +34,31 @@ def test_compare_costs_optional_api_cost_estimate():
 
 def test_compare_costs_empty_stats_returns_empty_list():
     assert compare_costs({}) == []
+
+
+def test_aggregate_ours_gpu_hours_sums_stages():
+    stage_hours = {"data_gen": 1.5, "distill": 3.0, "graph_construction": 0.2}
+    assert aggregate_ours_gpu_hours(stage_hours) == pytest.approx(4.7)
+
+
+def test_aggregate_ours_gpu_hours_empty_stages_is_zero():
+    assert aggregate_ours_gpu_hours({}) == 0.0
+
+
+def test_compare_total_costs_sorts_ours_against_baselines():
+    stage_hours = {"data_gen": 1.0, "distill": 2.0, "graph_construction": 0.5}
+    baseline_stats = {
+        "ms_graphrag": IndexStats(wall_clock_sec=3600, gpu_hours=10.0, llm_calls=1000),
+        "litesemrag": IndexStats(wall_clock_sec=60, gpu_hours=0.01, llm_calls=0),
+    }
+    rows = compare_total_costs(stage_hours, baseline_stats)
+
+    assert [r["method"] for r in rows] == ["litesemrag", "ours", "ms_graphrag"]
+    ours_row = next(r for r in rows if r["method"] == "ours")
+    assert ours_row["gpu_hours"] == pytest.approx(3.5)
+    assert ours_row["stage_breakdown"] == stage_hours
+    baseline_row = next(r for r in rows if r["method"] == "ms_graphrag")
+    assert baseline_row["stage_breakdown"] is None
 
 
 # ---- metrics_coverage / metrics_gold_accuracy ----

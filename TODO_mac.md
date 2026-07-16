@@ -33,12 +33,12 @@
 - [x] `tests/test_throughput_pilot.py` — `sample_docs(n=0)`, `sample_docs(n=1)` 경계값 케이스 추가
 - [x] Done when: 추가한 케이스 포함해 전체 테스트 스위트 pass — 57/57 pass
 
-## 3. Milestone 5/6 스크립트 골격 + 목데이터 테스트 선작성
+## 3. Milestone 5/6 스크립트 골격 + 목데이터 테스트 선작성 — ✅ 완료 (2026-07-16)
 
-- [ ] `4.1-a` GraphRAG-Bench 난이도 분리 스크립트 — 함수 시그니처 + 목데이터 유닛테스트
-- [ ] `4.4-a/b` GPU-시간 집계 스크립트 — 함수 시그니처 + 목데이터 유닛테스트
-- [ ] `4.5-a/b` Table 초안 / 난이도별 성능 분해 그래프 스크립트 — 함수 시그니처 + 목데이터 유닛테스트
-- [ ] Done when: 각 스크립트 최소 1개 이상 유닛테스트 pass (실제 데이터 연동은 여전히 🔒, 서브1/서브3 산출물 필요)
+- [x] `4.1-a` GraphRAG-Bench 난이도 분리 — `src/eval/difficulty_split.py`(`split_by_difficulty`), 난이도명은 원 논문 앵커 조사(arXiv:2506.05690) 때 확인한 4종(fact_retrieval/complex_reasoning/contextual_summarization/creative_generation) 그대로 사용. `tests/test_difficulty_split.py`(4개)
+- [x] `4.4-a/b` GPU-시간 집계 — `src/eval/metrics_cost.py`에 `aggregate_ours_gpu_hours`(서브1+2+3 단계 합산)·`compare_total_costs`(baseline 단일 index()와 동일 단위 비교) 추가. `tests/test_metrics.py`에 3개 추가
+- [x] `4.5-a/b` Table 초안 / 난이도별 성능 분해 — `src/eval/report_table.py`(`build_markdown_table`, `group_by_difficulty`). 실제 그래프 렌더링(matplotlib 등)은 스코프 밖 — 그룹화된 데이터까지만 제공. `tests/test_report_table.py`(4개)
+- [x] Done when: 각 스크립트 최소 1개 이상 유닛테스트 pass — 68/68 전체 pass (실제 데이터 연동은 여전히 🔒, 서브1/서브3 산출물 필요)
 
 ## 4. `ms_graphrag_wrapper.py` / `lightrag_wrapper.py` 실연동 (가장 오래 걸림)
 
