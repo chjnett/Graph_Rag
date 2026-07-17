@@ -684,6 +684,207 @@
     </div>
   </section>
 
+  <!-- ============ BEFORE/AFTER COMPARISON ============ -->
+  <section class="block">
+    <h2><span class="n">06</span> 기존 아키텍처 대비 무엇이 다른가</h2>
+    <p class="sub">같은 목표(지식그래프 기반 QA)를 향해 가는 두 경로 — 인덱싱 단계에서 무거운 LLM을 계속 부르는지 아닌지가 갈림길이다.</p>
+
+    <h3 style="font-size:13px; color:var(--risk); margin:0 0 4px; font-weight:700;">기존 GraphRAG (MS GraphRAG · LightRAG) — 인덱싱 경로</h3>
+    <div class="scroller" style="border-top:none;">
+      <div class="flow">
+        <div class="stage">
+          <div class="idx">INPUT</div>
+          <div class="t">원문 코퍼스</div>
+          <div class="d">Text Chunking</div>
+        </div>
+        <div class="arrow"></div>
+
+        <div class="col-stack">
+          <div class="stage">
+            <div class="idx">CHUNKS</div>
+            <div class="t">문서 청크</div>
+          </div>
+          <div class="branch-col" style="align-items:flex-start; margin-left:0;">
+            <div class="branch-link dashed" style="background:repeating-linear-gradient(180deg, var(--risk) 0 4px, transparent 4px 8px); opacity:.7;"></div>
+            <div class="satellite" style="border-color:var(--risk);">
+              <div class="t" style="color:var(--risk);">LLM 반복 호출 ①</div>
+              Entity &amp; Relationship Extraction — 청크마다 프롬프팅
+            </div>
+          </div>
+        </div>
+        <div class="arrow"></div>
+
+        <div class="stage">
+          <div class="idx">TRIPLES</div>
+          <div class="t">텍스트 트리플</div>
+          <div class="d">Sub-graph Triples</div>
+        </div>
+        <div class="arrow"></div>
+
+        <div class="col-stack">
+          <div class="stage">
+            <div class="idx">EMBED</div>
+            <div class="t">임베딩 벡터</div>
+            <div class="d">Graph Embedding → Vector DB 저장</div>
+          </div>
+          <div class="branch-col" style="align-items:flex-start; margin-left:0;">
+            <div class="branch-link dashed" style="background:repeating-linear-gradient(180deg, var(--risk) 0 4px, transparent 4px 8px); opacity:.7;"></div>
+            <div class="satellite" style="border-color:var(--risk);">
+              <div class="t" style="color:var(--risk);">LLM 반복 호출 ②</div>
+              Community Summary — Leiden 클러스터링 후 커뮤니티마다 요약 생성
+            </div>
+          </div>
+        </div>
+        <div class="arrow"></div>
+
+        <div class="stage">
+          <div class="idx">OUTPUT</div>
+          <div class="t">글로벌 지식그래프</div>
+          <div class="d">완성 — 여기까지 문서 1건 추가할 때마다 반복</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="callout" style="background:var(--risk-soft); border-color:var(--risk);">
+      <b style="color:var(--risk);">병목</b> — 문서를 새로 넣을 때마다 <b>지식 추출</b>과 <b>커뮤니티 요약</b> 두 구간에서 무거운 LLM 호출이 문서 수만큼(O(N)) 반복된다. 인덱싱 시점 API 비용·지연 시간이 문서량에 비례해 폭발하는 구조.
+    </p>
+
+    <h3 style="font-size:13px; color:var(--graph); margin:26px 0 4px; font-weight:700;">이 프로젝트 — 3단계 파이프라인</h3>
+
+    <div class="scroller" style="border-top:none;">
+      <div class="flow">
+        <div class="recap-card" style="width:auto; padding:10px 14px;"><div class="tech" style="margin:0;">1단계 · 오프라인 교사-학생 증류 (한 번만)</div></div>
+      </div>
+    </div>
+    <div class="scroller" style="border-top:none; padding-top:0;">
+      <div class="flow">
+        <div class="stage">
+          <div class="idx">SUBSET</div>
+          <div class="t">원문 코퍼스 (일부)</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="stage">
+          <div class="idx">TEACHER</div>
+          <div class="t">로컬 교사 LLM</div>
+          <div class="d">Qwen2.5-32B → self-consistency 필터링</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="stage">
+          <div class="idx">SFT</div>
+          <div class="t">경량 학생 모델</div>
+          <div class="d">QLoRA SFT 완료 — 이후 재사용, 이 단계는 다시 안 돔</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scroller" style="border-top:none; margin-top:18px;">
+      <div class="flow">
+        <div class="recap-card" style="width:auto; padding:10px 14px;"><div class="tech" style="margin:0;">2단계 · 실시간 LLM-free 인덱싱 (문서 추가마다 반복 — 여기가 핵심)</div></div>
+      </div>
+    </div>
+    <div class="scroller" style="border-top:none; padding-top:0;">
+      <div class="flow">
+        <div class="stage">
+          <div class="idx">INPUT</div>
+          <div class="t">새 코퍼스</div>
+          <div class="d">Text Chunking</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="stage hero">
+          <div class="idx">STUDENT</div>
+          <div class="t">경량 학생 모델 추론</div>
+          <div class="big">0</div>
+          <div class="d">LLM 호출 0회 — CPU로도 구동 가능</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="stage">
+          <div class="idx">NORMALIZE</div>
+          <div class="t">엔티티 정규화</div>
+          <div class="d">Type 사전필터 + 별칭 매칭 — 과묶임/과소병합 방지</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="stage">
+          <div class="idx">GRAPH</div>
+          <div class="t">글로벌 지식그래프</div>
+          <div class="d">Leiden 커뮤니티 탐지 + TextRank 요약 — 알고리즘만, LLM 없음</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scroller" style="border-top:none; margin-top:18px;">
+      <div class="flow">
+        <div class="recap-card" style="width:auto; padding:10px 14px;"><div class="tech" style="margin:0;">3단계 · 검색 및 최종 답변 생성</div></div>
+      </div>
+    </div>
+    <div class="scroller" style="border-top:none; padding-top:0;">
+      <div class="flow">
+        <div class="stage">
+          <div class="idx">QUERY</div>
+          <div class="t">사용자 쿼리</div>
+          <div class="d">1~2hop 서브그래프 검색 &amp; 랭킹</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="stage">
+          <div class="idx">CONTEXT</div>
+          <div class="t">엔티티/관계 컨텍스트</div>
+          <div class="d">파괴적 망각 방지 하이브리드 추론</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="stage">
+          <div class="idx">ANSWER</div>
+          <div class="t">최종 답변 생성</div>
+          <div class="d">교사 LLM 재활용(인덱싱 경로가 아니라 질의당 1회)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scroller" style="padding:0 4px 20px; border-top:none; margin-top:22px;">
+      <table class="compare">
+        <thead>
+          <tr><th>비교 항목</th><th>기존 GraphRAG</th><th>이 프로젝트</th><th>차별화 포인트</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="name">인덱싱 시 LLM 비용</td>
+            <td class="muted">매우 높음 — O(N) API 호출 또는 heavy GPU</td>
+            <td><b style="color:var(--graph);">0원 — O(0), 로컬 학생 모델 추론</b></td>
+            <td class="muted">C1(핵심 기여): 인덱싱 비용 장벽을 완전히 허물어 실시간 서비스 적용 가능</td>
+          </tr>
+          <tr>
+            <td class="name">인덱싱 인프라 요구량</td>
+            <td class="muted">고성능 GPU 필수 (VRAM 점유 + 장시간 구동)</td>
+            <td>맥북 / 일반 CPU로 구동 가능</td>
+            <td class="muted">원격 GPU 연결이 끊겨도 <span class="mono">sub4-mac-noGPU</span>에서 인덱싱 프로토타입 진행 가능했던 이유</td>
+          </tr>
+          <tr>
+            <td class="name">엔티티 추출 방식</td>
+            <td class="muted">매번 거대 LLM의 원샷/퓨샷 프롬프팅</td>
+            <td>SFT로 지식이 압축 이식된 경량 모델</td>
+            <td class="muted">단순 패턴 매칭(기존 LLM-free)보다 높은 맥락 이해도·정확도 유지가 목표</td>
+          </tr>
+          <tr>
+            <td class="name">엔티티 노이즈 제어</td>
+            <td class="muted">LLM 프롬프트 제어력에만 의존(유사 이름 중복 등)</td>
+            <td>2단계 정규화 방어선(Type 필터 + 별칭 매칭)</td>
+            <td class="muted">과묶임·과소병합을 알고리즘 수준에서 차단(Phase 3.2-b/3.2-b2)</td>
+          </tr>
+          <tr class="highlight">
+            <td class="name">평가·검증 신뢰도</td>
+            <td class="muted">자가 추출-자가 평가 순환논증 취약</td>
+            <td>교사-학생 일치율 vs 골드셋 실제 정확도 분리 평가</td>
+            <td class="muted">학술적 평가 신뢰도 확보, LLM-as-judge 편향 완화</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="callout">
+      기존 GraphRAG가 <b>"새 문서가 올 때마다 초거대 AI에게 무거운 노동을 시키는 공장"</b>이라면, 이 아키텍처는
+      <b>"초거대 AI에게 핵심 노하우(SFT)를 속성 교육받은 정예 요원(경량 모델)들을 현장에 배치해, 저비용·고효율로
+      즉각적인 지식 지도를 그리게 만드는 시스템"</b>이다.
+    </p>
+  </section>
+
   <!-- ============ FOOTER ============ -->
   <footer>
     <div class="foot-grid">
