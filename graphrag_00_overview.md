@@ -176,13 +176,15 @@ Phase 0:  0.0(로컬교사서빙) → 0.5(baseline 5종 재현, 로컬LLM 연동
 
 서브1(합성 데이터 생성)과 서브4(baseline 재현) 양쪽에서 공유하는 유일한 선행 인프라이므로 이 개요 문서에만 둔다.
 
-- **0.0-a** (M) vLLM 설치, CUDA/드라이버 호환성 확인 (RTX 3090, 24GB VRAM 기준)
-- **0.0-b** (M) Qwen2.5-32B-Instruct-AWQ(또는 14B-Instruct, 속도 우선 시) 다운로드 및 4bit 양자화 로드 확인
-- **0.0-c** (S) OpenAI 호환 엔드포인트로 vLLM 서버 기동, curl/Python 클라이언트로 샘플 요청 1건 응답 확인
+> **⚠️ 실행 방식 확정 (2026-07): 네이티브 설치 → Docker로 전환.** WSL2 Ubuntu + conda 네이티브 설치로 vLLM을 띄우려다 (1) UVA 비활성화 (2) KV 캐시 예산 부족 (3) nvcc 미설치 (4) gcc 15 비호환/curand.h 누락(flashinfer JIT 컴파일 실패)까지 네 번 연속 트러블슈팅 끝에 Docker(공식 이미지 `vllm/vllm-openai:v0.25.1`)로 전환 결정. 아래 0.0-a~0.0-c는 이제 네이티브 설치가 아니라 **[`docker/SETUP_GUIDE.md`](docker/SETUP_GUIDE.md)** 절차를 따른다 — WSL2 초기화 옵션, Docker Engine + NVIDIA Container Toolkit 설치, vLLM 컨테이너 기동, 트러블슈팅표까지 자기완결형으로 정리돼 있다. 이미 받아둔 모델 가중치(~19GB, `~/.cache/huggingface`)는 컨테이너에 볼륨 마운트해 재사용하므로 재다운로드 불필요.
+
+- **0.0-a** (M) ~~vLLM 설치, CUDA/드라이버 호환성 확인~~ → Docker Engine + NVIDIA Container Toolkit 설치 (`docker/SETUP_GUIDE.md` 참고, RTX 3090 24GB VRAM 기준)
+- **0.0-b** (M) Qwen2.5-32B-Instruct-AWQ(또는 14B-Instruct, 속도 우선 시) 다운로드 및 4bit 양자화 로드 확인 — `docker-compose.yml`에서 볼륨 마운트로 재사용
+- **0.0-c** (S) `docker compose up`으로 vLLM 컨테이너 기동, OpenAI 호환 엔드포인트에 curl/Python 클라이언트로 샘플 요청 1건 응답 확인
 - **0.0-d** (M) 처리량 벤치마크: 20개 청크로 초당 토큰 수, 청크당 평균 소요시간 측정 → 이후 데이터 생성/전체 코퍼스 추론 규모 산정의 기초 자료로 기록
-- **0.0-e** (S, 신규 — VRAM 안전장치) Qwen2.5-32B-AWQ는 4bit 양자화해도 가중치 자체가 ~18~19GB를 차지해, 24GB 중 KV 캐시 여유는 ~5GB뿐. OOM으로 서빙 엔진이 죽는 걸 막기 위해 (a) vLLM `--gpu-memory-utilization` 0.90 캡 설정, (b) 청크 크기를 500~1,000자 내외로 제한(GraphRAG 특성상 8k~16k 긴 컨텍스트를 한 번에 넣지 않음), (c) 배치 크기를 보수적으로 시작해 처리량 벤치마크(0.0-d) 중 OOM 발생 여부를 관찰하며 점진 증가. 이 설정은 Phase 1.2(자체 데이터 생성)와 Phase 0.5(baseline 재현, 동일 로컬 엔드포인트 사용) 양쪽 모두에 적용
-- Done when: 로컬 엔드포인트가 안정적으로 응답하고, 처리량 수치가 문서화되고, 0.0-e 설정값이 확정되어 OOM 없이 20개 청크 벤치마크 통과
-- **산출물**: 로컬 서빙 기동 스크립트(VRAM 안전 설정 포함) + 처리량 벤치마크 로그
+- **0.0-e** (S, VRAM 안전장치) Qwen2.5-32B-AWQ는 4bit 양자화해도 가중치 자체가 ~18~19GB를 차지해, 24GB 중 KV 캐시 여유는 ~5GB뿐. OOM으로 서빙 엔진이 죽는 걸 막기 위해 (a) vLLM `--gpu-memory-utilization` 0.90 캡 + `--max-model-len 4096`(실측 기반 안전값), (b) 청크 크기를 500~1,000자 내외로 제한(GraphRAG 특성상 8k~16k 긴 컨텍스트를 한 번에 넣지 않음), (c) 배치 크기를 보수적으로 시작해 처리량 벤치마크(0.0-d) 중 OOM 발생 여부를 관찰하며 점진 증가. `docker-compose.yml`에 고정 설정됨. 이 설정은 Phase 1.2(자체 데이터 생성)와 Phase 0.5(baseline 재현, 동일 로컬 엔드포인트 사용) 양쪽 모두에 적용
+- Done when: `docker/SETUP_GUIDE.md` 끝의 완료 체크리스트가 전부 체크되고, 로컬 엔드포인트가 안정적으로 응답하고, 처리량 수치가 문서화됨
+- **산출물**: `docker/vllm.Dockerfile` + `docker/docker-compose.yml`(VRAM 안전 설정 포함) + 처리량 벤치마크 로그
 
 ---
 
