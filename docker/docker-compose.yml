@@ -1,0 +1,43 @@
+# 로컬 교사 LLM(vLLM) 서빙 — graphrag_00_overview.md Phase 0.0 / configs/eval.yaml과 값이 동기화되어야 함.
+# 값을 바꾸면 반드시 ../configs/eval.yaml의 teacher_endpoint / teacher_model / gpu_memory_utilization도 같이 갱신할 것.
+#
+# 실행 전 필요(WSL2 Ubuntu 안에서, sudo 필요 — 사용자가 직접 실행):
+#   1. Docker Engine 설치 (Docker Desktop 아님, WSL2 네이티브 설치)
+#   2. NVIDIA Container Toolkit 설치 (GPU 패스스루)
+# 두 단계 다 sudo 비밀번호가 필요해 에이전트가 대신 실행할 수 없다.
+
+services:
+  vllm-teacher:
+    build:
+      context: ..
+      dockerfile: docker/vllm.Dockerfile
+    image: graphrag-vllm-teacher:0.25.1
+    container_name: graphrag_vllm_teacher
+    restart: unless-stopped
+    ports:
+      - "8000:8000"   # configs/eval.yaml teacher_endpoint: http://localhost:8000/v1
+    volumes:
+      # 이미 WSL 쪽에서 받아둔 ~19GB 가중치 재사용 (재다운로드 방지)
+      - ${HF_CACHE_DIR:-~/.cache/huggingface}:/root/.cache/huggingface
+    environment:
+      # graphrag_00 Phase 0.0 트러블슈팅: WSL2 커널 위에서는 컨테이너 안에서도 필요
+      - VLLM_WSL2_ENABLE_PIN_MEMORY=1
+    shm_size: "8gb"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: ["gpu"]
+    command:
+      - "--model"
+      - "Qwen/Qwen2.5-32B-Instruct-AWQ"        # configs/eval.yaml teacher_model
+      - "--gpu-memory-utilization"
+      - "0.90"                                  # Phase 0.0-e VRAM 안전장치, 상한 고정
+      - "--max-model-len"
+      - "4096"                                  # RTX 3090 24GB + util 0.90 기준 실측으로 정한 안전값
+      - "--port"
+      - "8000"
+      - "--host"
+      - "0.0.0.0"
