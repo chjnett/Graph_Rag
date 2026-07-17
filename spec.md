@@ -183,5 +183,37 @@ throughput_pilot:                  # Phase 0.5-a0 전용
 ## 9. 미확정 사항 (개발 중 명시적으로 TODO로 남길 것)
 
 1. `corpus_scope` 최종값 — Phase 0.5-a0 완료 전까지 `subset` 가정, 실측 후 갱신
-2. `deps_parsing_wrapper.py`의 대상 코드가 공개돼 있는지 미확인 (Phase 0.5-d) — 비공개 시 논문 기술 기반 최소 재현으로 스코프 축소
+2. `deps_parsing_wrapper.py`의 대상 코드가 공개돼 있는지 미확인 (Phase 0.5-d) — 비공개 시 논문 기술 기반 최소 재현으로 스코프 축소. 원문 확인 결과(§9-2 참고), 공개 저장소 링크는 여전히 확인 안 됨 → 최소 재현 스코프 유지
 3. LLM-as-judge 채점기 사용 여부 — 채점기 자체가 LLM 호출이라 별도 GPU-시간/비용으로 집계할지 결정 필요 (Phase 4.1-b)
+
+## 9-2. `deps_parsing_wrapper.py` 대상 논문 아키텍처 (arXiv:2507.03226)
+
+> "Towards Practical GraphRAG: Efficient Knowledge Graph Construction and Hybrid Retrieval at Scale" (Min et al.). 공개 코드 저장소는 arXiv 페이지 기준 확인 안 됨(2026-07 기준) — 아래는 논문 본문 기술 내용을 코드 재현 목적으로 정리한 것.
+
+**핵심 주장**: 의존구문분석 기반 추출이 LLM(GPT-4o) 기반 추출 대비 **~94% 성능을 유지하면서 비용을 대폭 절감**. 이것이 서브4의 "로컬 강모델도 무거워서 못 쓴다 → 경량/LLM-free 대안" 논지와 같은 방향이라 삼각비교 앵커로 유용함.
+
+**파이프라인 (논문 원문 기준)**:
+1. **전처리**: Docling으로 문서 파싱(PDF/HTML 등 포맷 무관) → 계층적 청킹(섹션 경계 존중, 2048자 초과 시 재귀 분할) → spaCy 문장 분할 → 동사구 없는 문장 필터링
+2. **추출**: spaCy 의존구문분석 트리에서 주어(`nsubj`/`nsubjpass`)-동사-목적어(`dobj`/`pobj`/`attr`) 구조로 triple 추출 (예: "SAP launched Joule for Consultants" → `(SAP, launched, Joule)`, `(Joule, for, Consultants)`)
+3. **후처리**: 수동태 정규화, 다중토큰 엔티티 병합(예: "Supplier management"), 지시어 해석(coreference resolution), 짧은 엔티티(2자 미만)·불용어 제거
+4. **엔티티 타입**: 도메인별 세분화 없이 전부 `type="Concept"`로 단일 처리
+
+**원 논문 보고 수치 (삼각비교 앵커 후보, `reports/sub3_phase3_6c_anchor.json` 반영 예정)**:
+
+| 지표 | 의존구문분석 | GPT-4o | 달성률 |
+|---|---|---|---|
+| Context Precision | 61.07% | 63.82% | 94% |
+| Semantic Alignment | 61.87% | 65.83% | 94% |
+| Full Coverage Rate | 51.08% | 58.99% | 86.6% |
+
+**현재 재현 상태 vs 논문 원문 — 격차 (2026-07-16 기준)**: `baselines/deps_parsing_wrapper.py`는 위 2단계(SVO 추출)만 최소 재현했고, 1단계 전처리(문장 필터링)와 3단계 후처리(수동태 정규화/엔티티 병합/coreference/불용어 제거) 및 4단계 `Concept` 타입 부여는 아직 없음. 이 격차는 `TODO_mac.md`에서 관리.
+
+## 9-3. `original_paper_anchor` 앵커 방법론 결정 (2026-07-16)
+
+MS GraphRAG(arXiv:2404.16130)·LightRAG(arXiv:2410.05779) 원 논문을 §8 `original_paper_anchor` 컬럼(EM/F1 병기 전제)의 1차 소스로 쓰려 했으나, 조사 결과 두 논문 다 **EM/F1을 보고하지 않는다** — GPT-4(o)를 심사자로 쓴 LLM-as-judge 승률(comprehensiveness/diversity/empowerment)이고, 평가 코퍼스도 우리와 다르다(MS GraphRAG: 팟캐스트/뉴스 기사, LightRAG: UltraDomain 일부만 공유). 같은 컬럼에 숫자로 병기하면 서로 다른 지표를 동일선상에 놓는 오해를 부른다.
+
+**결정**: GraphRAG-Bench 자체 논문(arXiv:2506.05690, "When to use Graphs in RAG")의 Table 2 — 이 논문이 GraphRAG-Bench 벤치마크로 MS GraphRAG/LightRAG를 직접 accuracy(%)로 재평가한 수치 — 를 1차 앵커로 채택. 우리 프로젝트가 쓰는 GraphRAG-Bench 데이터셋과 동일 조건이라 직접 비교 가능. 원 논문의 win-rate 수치는 `reports/sub3_phase3_6c_anchor.json`의 `qualitative_notes`에 참고용으로만 병기(§8 `original_paper_anchor` 컬럼에는 넣지 않음).
+
+**미해결**: HotpotQA/MultiHop-RAG용 MS GraphRAG·LightRAG EM/F1 앵커는 아직 못 찾음 — 두 원 논문 모두 이 데이터셋으로 평가하지 않음. 제3자 재평가 논문이 있는지 추가 조사 필요.
+
+**검증 필요**: `reports/sub3_phase3_6c_anchor.json`의 GraphRAG-Bench 수치는 arXiv HTML 파싱 기반으로 수집됨 — 논문에 실제 인용하기 전 PDF 원문 Table 2와 대조 재확인 권장.

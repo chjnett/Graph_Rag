@@ -63,6 +63,40 @@
 | 실험설계 — Baseline / 평가지표 / 다운스트림 QA | 5종 baseline 재현, 비용·품질·환각률 지표 정의, GraphRAG-Bench/HotpotQA/MultiHop-RAG | `graphrag_04_evaluation.md` |
 | 실험설계 — Ablation(데이터양/교사모델크기/필터링 유무) | GPU-시간 기준 ablation | `graphrag_01_data_pipeline.md` |
 
+### 1.6 전체 데이터 흐름 아키텍처 (파이프라인 다이어그램)
+
+> §4의 Phase 의존관계(번호 기준)와 같은 내용을 데이터 흐름 관점에서 시각화한 것. 노드 색은 GPU(RTX 3090) 필요 여부 — 🟩 GPU 없이 가능, 🟨 골격/일부만 가능, 🟥 GPU 필수(블록).
+
+```mermaid
+flowchart LR
+    INPUT["🟩 INPUT<br/>원문 코퍼스<br/>UltraDomain 외 7종<br/>428개 문서·18개 도메인"]
+    TEACHER["🟥 TEACHER<br/>로컬 교사 LLM<br/>Qwen2.5-32B-AWQ·vLLM·4bit"]
+    GEN["🟥 GEN<br/>합성 데이터 생성<br/>triple 추출·500~1,000자 청크<br/>GPT-4o 검증 ₩1,600(오프라인 QA 전용)"]
+    DISTILL["🟥 DISTILL<br/>경량 모델 SFT<br/>QLoRA/LoRA·보조데이터 비율 0/10/30/50%"]
+    INDEX["🟩 INDEX<br/>그래프 구축<br/>LLM 호출 0회·엔티티 정규화·Leiden·TextRank"]
+    RETRIEVE["🟨 RETRIEVE<br/>검색 인터페이스<br/>쿼리→1~2hop 서브그래프·랭킹"]
+    OUTPUT["🟨 OUTPUT<br/>다운스트림 QA 평가<br/>비용(GPU-시간)·정확도·환각률·도메인적응격차"]
+    BASELINE["🟨 Baseline 5종<br/>MS GraphRAG·LightRAG·LiteSemRAG<br/>dep-parsing·NoLLMRAG(로컬 LLM 인덱싱 통일)"]
+    ANCHOR["🟩 원논문 앵커<br/>GraphRAG/LightRAG GPT-4 보고 수치"]
+
+    INPUT --> TEACHER --> GEN --> DISTILL --> INDEX --> RETRIEVE --> OUTPUT
+    BASELINE --> RETRIEVE
+    ANCHOR -. 삼각비교 .-> OUTPUT
+
+    classDef gpuBlocked fill:#f8b4b4,stroke:#992222,color:#111
+    classDef macOk fill:#b7f0b0,stroke:#227722,color:#111
+    classDef macPartial fill:#f6e69b,stroke:#997700,color:#111
+
+    class TEACHER,GEN,DISTILL gpuBlocked
+    class INPUT,INDEX,ANCHOR macOk
+    class RETRIEVE,OUTPUT,BASELINE macPartial
+```
+
+- **🟩 지금 GPU 없이 가능**: INPUT(코퍼스 준비), INDEX(정의상 인덱싱 시 LLM 호출 0회 — Leiden/TextRank/엔티티정규화는 CPU 알고리즘), 원논문 앵커(문헌조사)
+- **🟨 골격/일부만 가능**: RETRIEVE(baseline wrapper 중 LLM-free 3종은 완결, GPU-backed 2종은 배선까지만), OUTPUT(metrics 스크립트+목데이터 테스트는 가능, 실제 실행은 블록), Baseline(LLM-free 계열은 완료, MS GraphRAG/LightRAG는 실 엔드포인트 필요)
+- **🟥 GPU 필수(블록)**: TEACHER(vLLM 서빙 자체), GEN(교사 모델 추론으로 triple 생성), DISTILL(SFT 학습)
+- 각 항목의 실제 작업 단위는 `TODO_mac.md`(GPU 없이 가능한 것) / `TODO.md`(전체) 참고
+
 ---
 
 ## 2. 데이터셋 인벤토리

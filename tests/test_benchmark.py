@@ -35,6 +35,10 @@ def test_sequential_run_processes_methods_one_at_a_time_in_order():
     assert call_log == ["a:start", "a:end", "b:start", "b:end"]
 
 
+def test_sequential_run_empty_methods_returns_empty_dict():
+    assert sequential_run({}, corpus_path="dummy", scope="subset") == {}
+
+
 def _base_row_kwargs(**overrides):
     kwargs = dict(
         method="ms_graphrag",

@@ -32,6 +32,10 @@ def test_compare_costs_optional_api_cost_estimate():
     assert rows[0]["api_cost_estimate"] == pytest.approx(3.0)
 
 
+def test_compare_costs_empty_stats_returns_empty_list():
+    assert compare_costs({}) == []
+
+
 # ---- metrics_coverage / metrics_gold_accuracy ----
 
 @pytest.fixture
@@ -90,6 +94,16 @@ def test_compute_em_f1_length_mismatch_raises():
         compute_em_f1([_mock_result("a")], [])
 
 
+def test_compute_em_f1_empty_lists_returns_zero_n():
+    metrics = compute_em_f1([], [])
+    assert metrics == {"em": 0.0, "f1": 0.0, "n": 0}
+
+
+def test_compute_llm_as_judge_empty_lists_returns_zero_n():
+    result = compute_llm_as_judge([], [], judge_fn=lambda pred, refs: 1.0)
+    assert result == {"llm_judge_score": 0.0, "n": 0}
+
+
 def test_compute_llm_as_judge_uses_injected_judge_fn():
     predictions = [_mock_result("Paris")]
     references = [["Paris"]]
@@ -140,3 +154,7 @@ def test_hallucination_rate_detects_ungrounded_span():
 def test_hallucination_rate_no_evidence_returns_zero():
     results = [QAResult(answer="", evidence=[], latency_ms=1.0, indexing_llm_calls=0)]
     assert hallucination_rate(results, {}) == 0.0
+
+
+def test_hallucination_rate_empty_results_list_returns_zero():
+    assert hallucination_rate([], {}) == 0.0

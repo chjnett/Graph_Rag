@@ -43,6 +43,18 @@ def test_sample_docs_deterministic_with_same_seed(tmp_path):
     assert first == second
 
 
+def test_sample_docs_n_zero_returns_empty_list(tmp_path):
+    (tmp_path / "doc0.txt").write_text("a", encoding="utf-8")
+    assert sample_docs(tmp_path, n=0) == []
+
+
+def test_sample_docs_n_one_returns_single_doc(tmp_path):
+    for i in range(3):
+        (tmp_path / f"doc{i}.txt").write_text("a", encoding="utf-8")
+    docs = sample_docs(tmp_path, n=1)
+    assert len(docs) == 1
+
+
 # ---- check_endpoint ----
 
 def test_check_endpoint_returns_false_on_connection_error(monkeypatch):

@@ -3,8 +3,8 @@ requests
 networkx
 scikit-learn
 pytest
+spacy              # Phase 0.5-d: deps_parsing_wrapper.py (+ `python -m spacy download en_core_web_sm`)
 
 # 선택 — 설치돼야 실제 실행 가능한 것들 (미설치 시 해당 wrapper는 명확한 에러로 실패)
 # graphrag          # Phase 0.5-a: MS GraphRAG 재현
 # lightrag-hku      # Phase 0.5-b: LightRAG 재현
-# spacy             # Phase 0.5-d: deps_parsing_wrapper.py (+ `python -m spacy download en_core_web_sm`)
